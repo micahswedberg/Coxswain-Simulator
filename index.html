@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Coxswain Maneuvering Simulator</title>
+    <title>Coxswain Simulator</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         :root {
             --bg-color: #0f172a; --panel-bg: #1e293b; --water: #0ea5e9;
@@ -13,175 +17,311 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        #header { padding: 12px; background: var(--panel-bg); text-align: center; font-size: 1.1rem; font-weight: bold; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        #header { padding: 12px; background: var(--panel-bg); text-align: center; font-size: 1.2rem; font-weight: bold; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
         
         #water-container { flex: 1; position: relative; overflow: hidden; touch-action: none; cursor: crosshair; background: #0c4a6e; }
+        
         #map-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; display: block; touch-action: none; }
         
-        .popup-panel { display: none; position: absolute; background: rgba(30, 41, 59, 0.96); border: 2px solid var(--accent); padding: 12px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        /* UPDATED: High Z-Index for popups */
+        .popup-panel { display: none; position: absolute; background: rgba(30, 41, 59, 0.95); border: 2px solid var(--accent); padding: 12px; border-radius: 8px; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
         .popup-panel h3 { margin: 0 0 10px 0; font-size: 1rem; border-bottom: 1px solid #475569; padding-bottom: 5px; }
         .popup-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; font-size: 0.9rem; }
+        .popup-row input { background: #0f172a; color: white; border: 1px solid #475569; padding: 4px; width: 60px; border-radius: 4px; text-align: center; }
         .popup-actions { display: flex; gap: 8px; margin-top: 10px; }
         
-        #controls-container { height: 48vh; background: var(--panel-bg); display: flex; flex-direction: column; overflow-y: auto; padding: 10px; border-top: 2px solid var(--accent); z-index: 5; }
-        .toolbar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; flex-shrink: 0; }
+        #controls-container { height: 50vh; background: var(--panel-bg); display: flex; flex-direction: column; overflow-y: auto; padding: 10px; border-top: 2px solid var(--accent); z-index: 5; }
+        
+        .toolbar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; flex-shrink: 0; }
         .toolbar::-webkit-scrollbar { height: 4px; }
         .toolbar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
-        
         .btn { padding: 8px 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; background: #334155; color: var(--text); white-space: nowrap; transition: 0.2s; }
         .btn.active { background: var(--accent); color: var(--bg-color); }
         .btn.danger { background: #7f1d1d; color: #fca5a5; }
         .btn-primary { background: var(--success); color: white; width: 100%; padding: 12px; font-size: 1.1rem; margin-top: 10px; }
         
-        .seat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-        .seat-card { background: #334155; padding: 6px; border-radius: 6px; font-size: 0.85rem; text-align: center; }
+        .seat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .seat-card { background: #334155; padding: 8px; border-radius: 6px; font-size: 0.9rem; text-align: center; }
         .seat-card select { width: 100%; padding: 6px; margin-top: 4px; background: var(--bg-color); color: var(--text); border: 1px solid var(--accent); border-radius: 4px; }
         
-        .rudder-control { margin-top: 8px; background: #334155; padding: 8px; border-radius: 6px; text-align: center; }
-        input[type="range"] { width: 100%; margin-top: 6px; }
-        select.preset-select { background: #0f172a; color: white; border: 1px solid var(--accent); padding: 6px; border-radius: 6px; }
+        .rudder-control { margin-top: 10px; background: #334155; padding: 10px; border-radius: 6px; text-align: center; }
+        input[type="range"] { width: 100%; margin-top: 8px; }
     </style>
 </head>
 <body>
     <div id="header">
         <span>Maneuvering Sim</span>
-        <span id="speed-display">0.00 m/s</span>
+        <span id="speed-display">0.0 m/s</span>
     </div>
     
     <div id="water-container">
         <div id="map-background"></div>
         <canvas id="lakeCanvas"></canvas>
+        
+        <!-- Wind Editor Popup (Keyboard-Free) -->
+        <div id="wind-dialog" class="popup-panel" style="top: 80px; right: 15px; width: 260px;">
+            <h3>Wind Settings</h3>
+            
+            <div style="margin-bottom: 12px;">
+                <div class="popup-row">
+                    <span>Speed:</span>
+                    <strong id="wind-speed-val">12 mph</strong>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+                    <button class="btn" style="padding: 4px 10px;" onclick="adjustWindSpeed(-1)">-</button>
+                    <input type="range" id="wind-speed-slider" min="0" max="20" value="12" style="flex:1;" oninput="onWindSliderChange()">
+                    <button class="btn" style="padding: 4px 10px;" onclick="adjustWindSpeed(1)">+</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+                <div class="popup-row">
+                    <span>Direction:</span>
+                    <strong id="wind-dir-val">180° (S)</strong>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+                    <button class="btn" style="padding: 4px 10px;" onclick="adjustWindDir(-5)">-</button>
+                    <input type="range" id="wind-dir-slider" min="0" max="360" step="5" value="180" style="flex:1;" oninput="onWindSliderChange()">
+                    <button class="btn" style="padding: 4px 10px;" onclick="adjustWindDir(5)">+</button>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="padding:8px; margin-top: 4px;" onclick="document.getElementById('wind-dialog').style.display='none'; draw();">Done</button>
+        </div>
+
+
+        <!-- Entity Editor Tooltip -->
+        <div id="entity-tooltip" class="popup-panel">
+            <h3 id="tooltip-title">Edit Object</h3>
+            <div id="tooltip-content"></div>
+            <div class="popup-actions" id="tooltip-actions"></div>
+        </div>
     </div>
     
     <div id="controls-container">
-        <div class="toolbar">
-            <select id="location-preset" class="preset-select" onchange="loadLocationPreset(this.value)">
-                <option value="lcb">Lake Carl Blackwell, OK</option>
-                <option value="open">Open Water</option>
+        <!-- Location Select Dropdown -->
+        <div class="toolbar" style="padding-bottom: 5px;">
+            <select id="location-select" class="btn" style="background: var(--bg-color); border: 1px solid var(--accent);">
+                <option value="blackwell">Lake Carl Blackwell, OK</option>
+                <option value="okc">Oklahoma River, OKC</option>
+                <option value="charles">Charles River, Boston</option>
+                <option value="empty">Blank Water (No Map)</option>
             </select>
-            <button class="btn active" id="btn-pan" onclick="setTool('pan')">Pan / View</button>
-            <button class="btn" id="btn-move" onclick="setTool('move')">Move Boat</button>
-            <button class="btn" id="btn-buoy" onclick="setTool('buoy')">Add Buoy</button>
-            <button class="btn" id="btn-dock" onclick="setTool('dock')">Add Dock</button>
-            <button class="btn" id="btn-wind" onclick="openWindDialog()">Wind UI</button>
         </div>
-        
-        <div class="toolbar" style="margin-top: 4px;">
-            <button class="btn" onclick="resetBoat()">Reset Sim</button>
-            <button class="btn danger" onclick="clearMap()">Clear Map</button>
-            <button class="btn" onclick="saveScenario()">Save Scenario</button>
-            <button class="btn" onclick="loadScenario()">Load Scenario</button>
+
+        <div class="toolbar">
+            <button class="btn active" id="mode-view">Pan / View</button>
+            <button class="btn" id="mode-boat">Move Boat</button>
+            <button class="btn" id="mode-buoy">Add Buoy</button>
+            <button class="btn" id="mode-dock">Add Dock</button>
+            <button class="btn" id="mode-finish">Add Finish Line</button>
+            <button class="btn danger" id="mode-erase">Erase Item</button>
+        </div>
+
+        <div class="toolbar" style="padding-bottom: 5px;">
+            <button class="btn" id="btn-reset">Reset Sim</button>
+            <button class="btn" id="btn-clear-map">Clear Map</button>
+            <button class="btn" id="btn-save">Save Scenario</button>
+            <button class="btn" id="btn-load">Load Scenario</button>
+            <input type="file" id="file-input" style="display:none" accept=".json">
         </div>
 
         <div class="rudder-control">
-            <div style="display:flex; justify-content:space-between;">
-                <span>Rudder Position:</span>
-                <strong id="rudder-val">Center</strong>
-            </div>
-            <input type="range" id="rudder-slider" min="-45" max="45" value="0" oninput="updateRudder(this.value)">
+            <label>Rudder Position: <span id="rudder-val">Center</span></label>
+            <input type="range" id="rudder" min="-45" max="45" value="0">
         </div>
 
-        <div class="seat-grid" id="seat-controls"></div>
-        <button class="btn btn-primary" onclick="simulateStroke()">Take Stroke</button>
-    </div>
+        <div class="seat-grid" id="seats-container"></div>
 
-    <!-- Floating Keyboard-Free Popups -->
-    <div id="wind-dialog" class="popup-panel" style="top: 70px; right: 15px; width: 260px;">
-        <h3>Wind Settings</h3>
-        <div style="margin-bottom: 12px;">
-            <div class="popup-row"><span>Speed:</span><strong id="wind-speed-val">12 mph</strong></div>
-            <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
-                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindSpeed(-1)">-</button>
-                <input type="range" id="wind-speed-slider" min="0" max="20" value="12" style="flex:1;" oninput="onWindSliderChange()">
-                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindSpeed(1)">+</button>
-            </div>
-        </div>
-        <div style="margin-bottom: 12px;">
-            <div class="popup-row"><span>Direction:</span><strong id="wind-dir-val">180° (S)</strong></div>
-            <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
-                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindDir(-5)">-</button>
-                <input type="range" id="wind-dir-slider" min="0" max="360" step="5" value="180" style="flex:1;" oninput="onWindSliderChange()">
-                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindDir(5)">+</button>
-            </div>
-        </div>
-        <button class="btn btn-primary" style="padding:8px; margin-top: 4px;" onclick="document.getElementById('wind-dialog').style.display='none'; draw();">Done</button>
+        <button class="btn btn-primary" id="btn-next-stroke">Simulate Next Stroke (+4s)</button>
     </div>
-
-    <div id="entity-tooltip" class="popup-panel">
-        <h3 id="tooltip-title">Edit Object</h3>
-        <div id="tooltip-content"></div>
-        <div class="popup-actions" id="tooltip-actions"></div>
-    </div>
-    <script>
+<script>
+    // --- CANVAS & UI SETUP ---
     const canvas = document.getElementById('lakeCanvas');
     const ctx = canvas.getContext('2d');
+    let width, height;
     
-    // Physics Parameters
-    const BOAT_LENGTH = 18.0;   // meters (~8+)
-    const BOAT_WIDTH = 0.6;     // meters
-    const BOAT_MASS = 1000;     // kg (hull + crew)
-    const MOI = (1/12) * BOAT_MASS * (BOAT_LENGTH * BOAT_LENGTH + BOAT_WIDTH * BOAT_WIDTH);
+    // Camera state
+    let cameraX = 0, cameraY = 0, scale = 3;
+    let cameraFollowsBoat = true;
+    let isDragging = false;
+    let lastDragX = 0, lastDragY = 0;
+    let initialPinchDistance = null;
+    let currentMode = 'view';
     
-    const FORCE_ROW = 1800;     
-    const FORCE_BACK = 900;     
-    const DRAG_CHECK_LINEAR = 1200;
-    const DRAG_CHECK_ROTATIONAL = 8000;
+    // --- MAP LOCATIONS ---
+    const mapLocations = {
+        'blackwell': { lat: 36.1252, lon: -97.2048 },
+        'okc': { lat: 35.4542, lon: -97.5152 },
+        'charles': { lat: 42.3590, lon: -71.1000 }
+    };
+    let activeLocation = 'blackwell';
+    let refLat = mapLocations['blackwell'].lat;
+    let refLon = mapLocations['blackwell'].lon;
+    let bgMap = null; 
     
-    const WATER_DRAG_LINEAR = 120;   
-    const WATER_DRAG_LATERAL = 2200; 
-    const WATER_DRAG_ROTATIONAL = 18000;
-    
-    const TIME_STEP = 1.0; 
-    const SAFE_SPEED_LATERAL = 0.25; 
-    const SAFE_SPEED_LONGITUDINAL = 0.5;
-    const SAFE_DOCK_ANGLE = 20; // degrees
+    let selectedEntity = null; // Holds reference to the tapped object
+    let movingEntity = null;   // Active when re-placing an object
 
-    // 3 Square-Inch Stern Rudder Physics
-    const RUDDER_AREA = 3 * 0.00064516; // 3 sq in in m² (~0.0019355 m²)
-    const RUDDER_OFFSET_Y = -8.0;       // ~8 meters behind center of mass
-    const RUDDER_MAX_COP_X = 0.0254;   // 1 inch max lateral Center of Pressure offset
+    
+    // --- ENVIRONMENT & PHYSICS CONSTANTS ---
+    const env = {
+        windSpeed: 5.36, // m/s (12 mph default)
+        windDirection: Math.PI, // Radians (180 deg / South)
+        currentSpeed: 0.0, // m/s (defaulting to 0 for flat lake)
+        currentDirection: 0 
+    };
+
+    const TIME_STEP = 4.0;
+    const BOAT_MASS = 950;
+    const BOAT_LENGTH = 17.5;
+    const BOAT_WIDTH = 0.6;
+    const MOI = (1/12) * BOAT_MASS * (Math.pow(BOAT_LENGTH, 2) + Math.pow(BOAT_WIDTH, 2)) * 5;
+    
+    const FORCE_ROW = 300;
+    const FORCE_BACK = 200;
+    const DRAG_CHECK_LINEAR = 300;
+    const DRAG_CHECK_ROTATIONAL = 4000;
+    const WATER_DRAG_LINEAR = 200; 
+    const WATER_DRAG_ROTATIONAL = 8000;
+    const WATER_DRAG_LATERAL = 3000; // NEW: Massive resistance to sliding sideways
+
+    // --- RUDDER & WIND TORQUE PHYSICS ---
+    const RUDDER_AREA = 3 * 0.00064516; // 3 square inches in m² (~0.0019355 m²)
+    const RUDDER_OFFSET_Y = -8.0;       // Rudder position ~8 meters behind center of mass (stern)
+    const RUDDER_MAX_COP_X = 0.0254;   // 1 inch max lateral Center of Pressure offset in meters
     const WATER_DENSITY = 1000;         // kg/m³
     const WIND_TORQUE_COEFF = 1.8;      // Aerodynamic weathervaning moment coefficient
 
-    // Global Environment
-    let env = {
-        windSpeed: 12 * 0.44704, // 12 mph to m/s
-        windDirection: Math.PI,  // 180 deg (South)
-        currentSpeed: 0.0,
-        currentDirection: 0
-    };
 
-    // Boat State
-    let boat = {
-        x: 0, y: 0,
-        vx: 0, vy: 0,
-        heading: 0, // radians (0 = North)
-        angularVelocity: 0,
-        rudderAngle: 0 // degrees
-    };
-
-    // Crew Configuration (8 Oars)
-    let seats = [
-        { id: 8, name: 'Stroke (8)', side: 'port', xOff: -0.4, yOff: 6, action: 'none' },
-        { id: 7, name: 'Seat 7', side: 'starboard', xOff: 0.4, yOff: 4.3, action: 'none' },
-        { id: 6, name: 'Seat 6', side: 'port', xOff: -0.4, yOff: 2.6, action: 'none' },
-        { id: 5, name: 'Seat 5', side: 'starboard', xOff: 0.4, yOff: 0.9, action: 'none' },
-        { id: 4, name: 'Seat 4', side: 'port', xOff: -0.4, yOff: -0.8, action: 'none' },
-        { id: 3, name: 'Seat 3', side: 'starboard', xOff: 0.4, yOff: -2.5, action: 'none' },
-        { id: 2, name: 'Seat 2', side: 'port', xOff: -0.4, yOff: -4.2, action: 'none' },
-        { id: 1, name: 'Bow (1)', side: 'starboard', xOff: 0.4, yOff: -5.9, action: 'none' }
-    ];
-
-    let objectives = [
-        { type: 'dock', x: 25, y: 10, w: 3, h: 30, angle: 0 }
-    ];
+    // --- ENTITIES ---
     let obstacles = [];
+    let objectives = [];
+    
+    let boat = getInitialBoatState();
 
-    let camera = { x: 0, y: 0, zoom: 12 }; // 12 pixels = 1 meter
-    let currentTool = 'pan';
-    let selectedEntity = null;
-    let cameraFollowsBoat = true;
+    function getInitialBoatState() {
+        return {
+            x: width ? width / 2 : 0, 
+            y: height ? height / 2 : 0,
+            vx: 0, vy: 0,
+            heading: 0, 
+            angularVelocity: 0,
+            rudderAngle: 0
+        };
+    }
+
+    const LAT_DIST = 1.2;
+        
+    const seats = [
+        { id: 2, name: "Seat 2", side: "Port", xOff: -LAT_DIST, yOff: 4.5, action: "easy" },
+        { id: 1, name: "Bow (1)", side: "Starboard", xOff: LAT_DIST, yOff: 6, action: "easy" },
+        { id: 4, name: "Seat 4", side: "Port", xOff: -LAT_DIST, yOff: 1.5, action: "easy" },
+        { id: 3, name: "Seat 3", side: "Starboard", xOff: LAT_DIST, yOff: 3, action: "easy" },
+        { id: 6, name: "Seat 6", side: "Port", xOff: -LAT_DIST, yOff: -1.5, action: "easy" },
+        { id: 5, name: "Seat 5", side: "Starboard", xOff: LAT_DIST, yOff: 0, action: "easy" },
+        { id: 8, name: "Stroke (8)", side: "Port", xOff: -LAT_DIST, yOff: -4.5, action: "easy" },
+        { id: 7, name: "Seat 7", side: "Starboard", xOff: LAT_DIST, yOff: -3, action: "easy" }
+    ];
+
+    
+    const SAFE_SPEED_LATERAL = 0.3;      // m/s (approx 1 ft/s)
+    const SAFE_SPEED_LONGITUDINAL = 0.5; // m/s
+    const SAFE_DOCK_ANGLE = 15;          // Degrees of allowed deviation for broadside docking
+    
+    function checkGameState(vFwd, vLat) {
+        const baseThreshold = (BOAT_WIDTH / 2) + 0.5; 
+        
+        for (let i = -1; i <= 1; i += 0.25) { 
+            let px = boat.x + Math.sin(boat.heading) * (BOAT_LENGTH/2) * i;
+            let py = boat.y - Math.cos(boat.heading) * (BOAT_LENGTH/2) * i;
+            let currentThreshold = baseThreshold * (1 - 0.6 * Math.abs(i));
+            
+            // 1. Check Buoys
+            for (let obs of obstacles) {
+                if (Math.hypot(px - obs.x, py - obs.y) < currentThreshold) {
+                    return { status: 'Failure', reason: 'You hit a buoy!', fwd: vFwd, lat: vLat };
+                }
+            }
+            
+            // 2. Check Rotated Docks (With Oar's Length Success Zone)
+            for (let dock of objectives.filter(o => o.type === 'dock')) {
+                let dw = dock.w || 20; let dh = dock.h || 60; let dang = dock.angle || 0;
+
+                let dx = px - dock.x; let dy = py - dock.y;
+                let cosA = Math.cos(-dang); let sinA = Math.sin(-dang);
+                let localPx = dx * cosA - dy * sinA;
+                let localPy = dx * sinA + dy * cosA;
+                
+                let hw = dw / 2; let hh = dh / 2;
+                
+                // Solid Dock Detection
+                let cx = Math.max(-hw, Math.min(localPx, hw));
+                let cy = Math.max(-hh, Math.min(localPy, hh));
+                let hitActual = Math.hypot(localPx - cx, localPy - cy) < currentThreshold;
+
+                // Broadside Success Zone (Adds 2.5m oar length to the long sides)
+                const OAR_LENGTH = 2.5;
+                let winZoneHW = hw + OAR_LENGTH;
+                let wx = Math.max(-winZoneHW, Math.min(localPx, winZoneHW));
+                let wy = Math.max(-hh, Math.min(localPy, hh)); // Ends remain flush
+                let inWinZone = Math.hypot(localPx - wx, localPy - wy) < currentThreshold;
+
+                let isBow = i > 0.75; let isStern = i < -0.75; let isBody = !isBow && !isStern;
+
+                let boatDeg = (boat.heading * 180 / Math.PI) % 180;
+                if (boatDeg < 0) boatDeg += 180;
+                let dockDeg = (dang * 180 / Math.PI) % 180;
+                if (dockDeg < 0) dockDeg += 180;
+                
+                let alignmentDiff = Math.abs(boatDeg - dockDeg);
+                alignmentDiff = Math.min(alignmentDiff, 180 - alignmentDiff);
+                let safeSpeedAndAngle = Math.abs(vLat) <= SAFE_SPEED_LATERAL && Math.abs(vFwd) <= SAFE_SPEED_LONGITUDINAL && alignmentDiff <= SAFE_DOCK_ANGLE;
+
+                if (hitActual) {
+                    let hitShortSide = (cy === -hh || cy === hh);
+                    let hitLongSide = (cx === -hw || cx === hw);
+
+                    if (hitLongSide) {
+                        return { status: 'Failure', reason: isBody ? 'Crashed into the long side of the dock! (Approach slower to trigger the success zone)' : 'Hit the long side of the dock with the bow or stern.', fwd: vFwd, lat: vLat };
+                    } else if (hitShortSide) {
+                        if (isBow) return { status: 'Failure', reason: 'Bow touched the short side of the dock.', fwd: vFwd, lat: vLat };
+                        if (isStern) {
+                            if (vFwd > -SAFE_SPEED_LONGITUDINAL && vFwd < 0) { 
+                                return { status: 'Win', reason: 'Successfully backed into the dock.', fwd: vFwd, lat: vLat };
+                            } else {
+                                return { status: 'Failure', reason: `Backed in too hard (or pulled in forward). Safe backing speed is < ${SAFE_SPEED_LONGITUDINAL} m/s.`, fwd: vFwd, lat: vLat };
+                            }
+                        }
+                        if (isBody) return { status: 'Failure', reason: 'Broadsided the short end of the dock.', fwd: vFwd, lat: vLat };
+                    }
+                } else if (inWinZone && isBody && safeSpeedAndAngle) {
+                    let hitLongSideZone = (wx === -winZoneHW || wx === winZoneHW);
+                    if (hitLongSideZone) {
+                        return { status: 'Win', reason: 'Successfully parked alongside the dock (within an oar\'s length).', fwd: vFwd, lat: vLat };
+                    }
+                }
+            }
+        }
+        
+        // 3. Check Finish Lines
+        for (let fin of objectives.filter(o => o.type === 'finish')) {
+            let dang = fin.angle || 0; let fw = fin.w || 100;
+            let dx = boat.x - fin.x; let dy = boat.y - fin.y;
+            let cosA = Math.cos(-dang); let sinA = Math.sin(-dang);
+            let localPx = dx * cosA - dy * sinA;
+            let localPy = dx * sinA + dy * cosA;
+
+            if (Math.abs(localPy) < 2.0 && Math.abs(localPx) < (fw/2)) {
+                return { status: 'Win', reason: 'Crossed the finish line!', fwd: vFwd, lat: vLat };
+            }
+        }
+        
+        return null;
+    }
+
+    // --- PHYSICS ENGINE ---
     function simulateStroke() {
         const SUB_STEPS = 40; 
         const dt = TIME_STEP / SUB_STEPS; 
@@ -194,10 +334,11 @@
             const hCos = Math.cos(boat.heading);
             const hSin = Math.sin(boat.heading);
             
+            // Boat's current velocity through the water
             const localVelocityForward = boat.vx * hSin - boat.vy * hCos;
             const localVelocityLateral = boat.vx * hCos + boat.vy * hSin;
             
-            // Oar Forces
+            // --- OAR FORCES ---
             seats.forEach(seat => {
                 let seatF_y = 0; 
                 if (seat.action === 'row') seatF_y = FORCE_ROW;
@@ -211,7 +352,7 @@
                 torque -= seatF_y * seat.xOff; 
             });
 
-            // 3 SQ IN Rudder Physics
+            // --- RUDDER PHYSICS ---
             const rudderRad = (boat.rudderAngle || 0) * (Math.PI / 180); 
             if (Math.abs(rudderRad) > 0.001 && Math.abs(localVelocityForward) > 0.01) {
                 const qWater = 0.5 * WATER_DENSITY * localVelocityForward * Math.abs(localVelocityForward);
@@ -227,27 +368,32 @@
                 torque += (rudderLift * RUDDER_OFFSET_Y) + (rudderDrag * copX);
             }
 
-            // Local Aerodynamic Wind Physics
+            // --- PURE LOCAL WIND PHYSICS ---
+            // 1. Calculate wind vector (Meteorological direction: where it blows FROM)
             const windBlowsTowards = env.windDirection + Math.PI;
             const windVx = Math.sin(windBlowsTowards) * env.windSpeed;
             const windVy = -Math.cos(windBlowsTowards) * env.windSpeed;
 
+            // 2. Map wind into the hull's local forward/lateral axes
             const localWindFwd = windVx * hSin - windVy * hCos;
             const localWindLat = windVx * hCos + windVy * hSin;
 
-            const aeroDragFwd = Math.sign(localWindFwd) * (localWindFwd * localWindFwd) * 2.0;
-            const aeroDragLat = Math.sign(localWindLat) * (localWindLat * localWindLat) * 20.0;
+            // 3. Apply aerodynamic drag based on profile area (Guarantees zero fwd thrust from pure crosswind)
+            const aeroDragFwd = Math.sign(localWindFwd) * (localWindFwd * localWindFwd) * 2.0;  // Skinny profile
+            const aeroDragLat = Math.sign(localWindLat) * (localWindLat * localWindLat) * 20.0; // Broadside profile
             
             forceForward += aeroDragFwd;
             forceLateral += aeroDragLat;
+
+            // 4. Weathervaning Torque (Crosswind pushes the bow downwind)
             torque += Math.sign(localWindLat) * (localWindLat * localWindLat) * WIND_TORQUE_COEFF;
 
-            // Hydrodynamic Water Drag
+            // --- HYDRODYNAMIC DRAG ---
             forceForward -= localVelocityForward * WATER_DRAG_LINEAR;
             forceLateral -= localVelocityLateral * WATER_DRAG_LATERAL; 
             torque -= boat.angularVelocity * WATER_DRAG_ROTATIONAL;
 
-            // Global Integration
+            // --- ACCELERATION & KINEMATICS ---
             const totalFx = forceForward * hSin + forceLateral * hCos;
             const totalFy = -forceForward * hCos + forceLateral * hSin; 
 
@@ -277,122 +423,152 @@
         draw();
     }
 
-    function checkGameState(vFwd, vLat) {
-        const baseThreshold = (BOAT_WIDTH / 2) + 0.5; 
+    // --- RENDERING ---
+    function resizeCanvas() {
+        const container = document.getElementById('water-container');
+        width = canvas.width = container.clientWidth;
+        height = canvas.height = container.clientHeight;
+        if(boat.x === 0 && boat.y === 0) resetSim();
         
-        for (let i = -1; i <= 1; i += 0.25) { 
-            let px = boat.x + Math.sin(boat.heading) * (BOAT_LENGTH/2) * i;
-            let py = boat.y - Math.cos(boat.heading) * (BOAT_LENGTH/2) * i;
-            let currentThreshold = baseThreshold * (1 - 0.6 * Math.abs(i));
-            
-            // Buoys
-            for (let obs of obstacles) {
-                if (Math.hypot(px - obs.x, py - obs.y) < currentThreshold) {
-                    return { status: 'Failure', reason: 'You hit a buoy!', fwd: vFwd, lat: vLat };
-                }
-            }
-            
-            // Rotated Docks with 2.5m Broadside Oar Halo
-            for (let dock of objectives.filter(o => o.type === 'dock')) {
-                let dw = dock.w || 3; let dh = dock.h || 30; let dang = dock.angle || 0;
-                let dx = px - dock.x; let dy = py - dock.y;
-                let cosA = Math.cos(-dang); let sinA = Math.sin(-dang);
-                let localPx = dx * cosA - dy * sinA;
-                let localPy = dx * sinA + dy * cosA;
-                
-                let hw = dw / 2; let hh = dh / 2;
-                
-                let cx = Math.max(-hw, Math.min(localPx, hw));
-                let cy = Math.max(-hh, Math.min(localPy, hh));
-                let hitActual = Math.hypot(localPx - cx, localPy - cy) < currentThreshold;
-
-                const OAR_LENGTH = 2.5;
-                let winZoneHW = hw + OAR_LENGTH;
-                let wx = Math.max(-winZoneHW, Math.min(localPx, winZoneHW));
-                let wy = Math.max(-hh, Math.min(localPy, hh)); 
-                let inWinZone = Math.hypot(localPx - wx, localPy - wy) < currentThreshold;
-
-                let isBow = i > 0.75; let isStern = i < -0.75; let isBody = !isBow && !isStern;
-
-                let boatDeg = (boat.heading * 180 / Math.PI) % 180; if (boatDeg < 0) boatDeg += 180;
-                let dockDeg = (dang * 180 / Math.PI) % 180; if (dockDeg < 0) dockDeg += 180;
-                
-                let alignmentDiff = Math.abs(boatDeg - dockDeg);
-                alignmentDiff = Math.min(alignmentDiff, 180 - alignmentDiff);
-                let safeSpeedAndAngle = Math.abs(vLat) <= SAFE_SPEED_LATERAL && Math.abs(vFwd) <= SAFE_SPEED_LONGITUDINAL && alignmentDiff <= SAFE_DOCK_ANGLE;
-
-                if (hitActual) {
-                    let hitShortSide = (cy === -hh || cy === hh);
-                    let hitLongSide = (cx === -hw || cx === hw);
-
-                    if (hitLongSide) {
-                        return { status: 'Failure', reason: isBody ? 'Crashed into long side of dock! (Approach slower to trigger success zone)' : 'Hit dock with bow/stern.', fwd: vFwd, lat: vLat };
-                    } else if (hitShortSide) {
-                        if (isBow) return { status: 'Failure', reason: 'Bow touched short side of dock.', fwd: vFwd, lat: vLat };
-                        if (isStern) {
-                            if (vFwd > -SAFE_SPEED_LONGITUDINAL && vFwd < 0) { 
-                                return { status: 'Win', reason: 'Successfully backed into dock.', fwd: vFwd, lat: vLat };
-                            } else {
-                                return { status: 'Failure', reason: `Backed in too hard (or pulled in forward). Safe backing speed is < ${SAFE_SPEED_LONGITUDINAL} m/s.`, fwd: vFwd, lat: vLat };
-                            }
-                        }
-                        if (isBody) return { status: 'Failure', reason: 'Broadsided short end of dock.', fwd: vFwd, lat: vLat };
-                    }
-                } else if (inWinZone && isBody && safeSpeedAndAngle) {
-                    if (wx === -winZoneHW || wx === winZoneHW) {
-                        return { status: 'Win', reason: 'Successfully parked alongside dock (within an oar\'s length).', fwd: vFwd, lat: vLat };
-                    }
-                }
-            }
-        }
-        return null;
-    }
-    function getCardinalDirection(deg) {
-        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-        return directions[Math.round(((deg % 360) / 45)) % 8];
-    }
-
-    function openWindDialog() {
-        document.getElementById('wind-dialog').style.display = 'block';
-    }
-
-    function onWindSliderChange() {
-        const speed = parseInt(document.getElementById('wind-speed-slider').value);
-        const dir = parseInt(document.getElementById('wind-dir-slider').value);
-        document.getElementById('wind-speed-val').innerText = `${speed} mph`;
-        document.getElementById('wind-dir-val').innerText = `${dir}° (${getCardinalDirection(dir)})`;
-        env.windSpeed = speed * 0.44704;
-        env.windDirection = dir * (Math.PI / 180);
+        if (bgMap) bgMap.invalidateSize(); // Ensure Leaflet resizes correctly
         draw();
     }
 
-    function adjustWindSpeed(delta) {
-        const slider = document.getElementById('wind-speed-slider');
-        slider.value = Math.max(0, Math.min(20, parseInt(slider.value) + delta));
-        onWindSliderChange();
+     function drawWindOverlay() {
+        const padding = 20;
+        const x = width - 60;
+        const y = 60;
+        const r = 30;
+
+        // Highlight if active
+        ctx.fillStyle = document.getElementById('wind-dialog').style.display === 'block' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(15, 23, 42, 0.7)';
+        ctx.beginPath(); ctx.arc(x, y, r + 10, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2; ctx.stroke();
+        
+        const mph = (env.windSpeed * 2.23694).toFixed(0);
+        ctx.fillStyle = '#f8fafc'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`${mph} mph`, x, y + r + 25);
+
+        if (env.windSpeed > 0) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(env.windDirection - Math.PI/2); 
+            ctx.strokeStyle = '#f8fafc'; ctx.fillStyle = '#f8fafc';
+            
+            ctx.beginPath();
+            ctx.moveTo(-15, 0); ctx.lineTo(10, 0); ctx.stroke(); 
+            ctx.beginPath();
+            ctx.moveTo(15, 0); ctx.lineTo(5, -5); ctx.lineTo(5, 5); ctx.fill(); 
+            ctx.restore();
+        }
     }
 
-    function adjustWindDir(delta) {
-        const slider = document.getElementById('wind-dir-slider');
-        slider.value = (parseInt(slider.value) + delta + 360) % 360;
-        onWindSliderChange();
+    function draw() {
+        if (activeLocation === 'empty') {
+            ctx.fillStyle = '#0c4a6e'; ctx.fillRect(0, 0, width, height);
+        } else {
+            ctx.clearRect(0, 0, width, height);
+            if (bgMap) {
+                const latPerMeter = 1 / 111111;
+                const lonPerMeter = 1 / (111111 * Math.cos(refLat * Math.PI / 180));
+                const centerLat = refLat - (cameraY * latPerMeter);
+                const centerLon = refLon + (cameraX * lonPerMeter);
+                const zoom = 17 + Math.log2(scale);
+                bgMap.setView([centerLat, centerLon], zoom, { animate: false });
+            }
+        }
+
+        ctx.save();
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-cameraX, -cameraY);
+
+        objectives.forEach(obj => {
+            ctx.save();
+            ctx.translate(obj.x, obj.y);
+            ctx.rotate(obj.angle || 0);
+            if(obj.type === 'dock') {
+                let w = obj.w || 20; let h = obj.h || 60;
+                ctx.fillStyle = '#8b5a2b'; 
+                ctx.fillRect(-w/2, -h/2, w, h);
+                if (selectedEntity === obj) { ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2/scale; ctx.strokeRect(-w/2, -h/2, w, h); }
+            } else if (obj.type === 'finish') {
+                let fw = obj.w || 100;
+                ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+                ctx.beginPath(); ctx.moveTo(-fw/2, 0); ctx.lineTo(fw/2, 0); ctx.stroke();
+                ctx.setLineDash([]);
+                if (selectedEntity === obj) { ctx.fillStyle = 'rgba(56, 189, 248, 0.5)'; ctx.fillRect(-fw/2, -5, fw, 10); }
+            }
+            ctx.restore();
+        });
+
+        obstacles.forEach(obs => {
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath(); ctx.arc(obs.x, obs.y, 2, 0, Math.PI * 2); ctx.fill();
+            if (selectedEntity === obs) { ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2/scale; ctx.stroke(); }
+        });
+
+        ctx.translate(boat.x, boat.y);
+        ctx.rotate(boat.heading);
+
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath(); ctx.ellipse(0, 0, BOAT_WIDTH/2, BOAT_LENGTH/2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = (selectedEntity === boat) ? '#38bdf8' : '#ca8a04'; 
+        ctx.lineWidth = (selectedEntity === boat) ? 2/scale : 0.2; 
+        ctx.stroke();
+
+        seats.forEach(seat => {
+            ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.arc(0, -seat.yOff, 0.3, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 0.15; ctx.beginPath();
+            ctx.moveTo(seat.xOff > 0 ? 0.3 : -0.3, -seat.yOff);
+            let oarAngle = seat.action === 'row' ? -0.5 : seat.action === 'back' ? 0.5 : seat.action === 'check' ? 0 : 1.2;
+            if(seat.side === 'Port') oarAngle = -oarAngle;
+            ctx.lineTo((seat.xOff > 0 ? 0.3 : -0.3) + Math.cos(oarAngle) * 2.5, -seat.yOff + Math.sin(oarAngle) * 2.5);
+            ctx.stroke();
+        });
+
+        ctx.restore();
+        drawWindOverlay();
+    }
+
+    // --- HIT DETECTION & TOOLTIP ---
+    function getEntityAt(wX, wY) {
+        if (Math.hypot(wX - boat.x, wY - boat.y) < BOAT_LENGTH/2) return { type: 'boat', ref: boat };
+        for (let b of obstacles) { if (Math.hypot(wX - b.x, wY - b.y) < 5/scale) return { type: 'buoy', ref: b }; }
+        for (let d of objectives.filter(o => o.type === 'dock')) {
+            let dx = wX - d.x; let dy = wY - d.y;
+            let ang = d.angle || 0;
+            let lx = dx * Math.cos(-ang) - dy * Math.sin(-ang);
+            let ly = dx * Math.sin(-ang) + dy * Math.cos(-ang);
+            if (Math.abs(lx) <= (d.w||20)/2 && Math.abs(ly) <= (d.h||60)/2) return { type: 'dock', ref: d };
+        }
+        for (let f of objectives.filter(o => o.type === 'finish')) {
+            let dx = wX - f.x; let dy = wY - f.y;
+            let ang = f.angle || 0;
+            let lx = dx * Math.cos(-ang) - dy * Math.sin(-ang);
+            let ly = dx * Math.sin(-ang) + dy * Math.cos(-ang);
+            if (Math.abs(ly) < 5/scale && Math.abs(lx) < (f.w||100)/2) return { type: 'finish', ref: f };
+        }
+        return null;
     }
 
     function showTooltip(entityData, clientX, clientY) {
         const t = document.getElementById('entity-tooltip');
         selectedEntity = entityData.ref;
         t.style.display = 'block';
+        
+        // Clamp tooltip position within screen edges
         t.style.left = Math.min(clientX + 10, window.innerWidth - 270) + 'px';
         t.style.top = Math.min(clientY + 10, window.innerHeight - 260) + 'px';
         
         let html = '';
         let act = `<button class="btn" onclick="startMoveEntity()">Move</button>`;
         
-        if (entityData.type === 'dock') {
-            document.getElementById('tooltip-title').innerText = 'Edit Dock';
+        if (entityData.type === 'dock' || entityData.type === 'finish') {
+            document.getElementById('tooltip-title').innerText = entityData.type === 'dock' ? 'Edit Dock' : 'Edit Finish Line';
             let curAng = Math.round(((selectedEntity.angle || 0) * 180 / Math.PI) % 360);
             if (curAng < 0) curAng += 360;
-            let curW = selectedEntity.w || 3;
+            let curW = selectedEntity.w || (entityData.type === 'dock' ? 3 : 100);
             let curH = selectedEntity.h || 30;
 
             html += `
@@ -412,17 +588,39 @@
                         <button class="btn" style="padding:2px 8px;" onclick="updateEntityProp('w', 1, 2, 5, true)">+</button>
                     </div>
                 </div>
+            `;
+            if (entityData.type === 'dock') {
+                html += `
+                    <div style="margin-bottom:8px;">
+                        <div class="popup-row"><span>Length:</span><strong id="val-h">${curH}m</strong></div>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <button class="btn" style="padding:2px 8px;" onclick="updateEntityProp('h', -2, 20, 50, true)">-</button>
+                            <input type="range" id="slider-h" min="20" max="50" value="${curH}" style="flex:1;" oninput="updateEntityProp('h', this.value, 20, 50, false)">
+                            <button class="btn" style="padding:2px 8px;" onclick="updateEntityProp('h', 2, 20, 50, true)">+</button>
+                        </div>
+                    </div>
+                `;
+            }
+            act += `<button class="btn danger" onclick="deleteSelected()">Remove</button>`;
+        } else if (entityData.type === 'boat') {
+            document.getElementById('tooltip-title').innerText = 'Edit Boat';
+            let curAng = Math.round(((boat.heading || 0) * 180 / Math.PI) % 360);
+            if (curAng < 0) curAng += 360;
+            html += `
                 <div style="margin-bottom:8px;">
-                    <div class="popup-row"><span>Length:</span><strong id="val-h">${curH}m</strong></div>
+                    <div class="popup-row"><span>Heading:</span><strong id="val-rot">${curAng}°</strong></div>
                     <div style="display:flex; gap:6px; align-items:center;">
-                        <button class="btn" style="padding:2px 8px;" onclick="updateEntityProp('h', -2, 20, 50, true)">-</button>
-                        <input type="range" id="slider-h" min="20" max="50" value="${curH}" style="flex:1;" oninput="updateEntityProp('h', this.value, 20, 50, false)">
-                        <button class="btn" style="padding:2px 8px;" onclick="updateEntityProp('h', 2, 20, 50, true)">+</button>
+                        <button class="btn" style="padding:2px 8px;" onclick="updateBoatHeading(-5, true)">-</button>
+                        <input type="range" id="slider-rot" min="0" max="360" step="5" value="${curAng}" style="flex:1;" oninput="updateBoatHeading(this.value, false)">
+                        <button class="btn" style="padding:2px 8px;" onclick="updateBoatHeading(5, true)">+</button>
                     </div>
                 </div>
             `;
+        } else if (entityData.type === 'buoy') {
+            document.getElementById('tooltip-title').innerText = 'Edit Buoy';
             act += `<button class="btn danger" onclick="deleteSelected()">Remove</button>`;
         }
+
         act += `<button class="btn" style="background:#475569" onclick="closeTooltip()">Done</button>`;
         document.getElementById('tooltip-content').innerHTML = html;
         document.getElementById('tooltip-actions').innerHTML = act;
@@ -431,7 +629,7 @@
 
     window.updateEntityProp = function(prop, val, min, max, isDelta) {
         if (!selectedEntity) return;
-        let currentVal = (prop === 'angle') ? Math.round(((selectedEntity.angle || 0) * 180 / Math.PI) % 360) : (selectedEntity[prop] || (prop === 'w' ? 3 : 30));
+        let currentVal = (prop === 'angle') ? Math.round(((selectedEntity.angle || 0) * 180 / Math.PI) % 360) : (selectedEntity[prop] || (prop === 'w' ? 20 : 60));
         if (currentVal < 0) currentVal += 360;
 
         let newVal = isDelta ? currentVal + val : parseFloat(val);
@@ -450,96 +648,351 @@
         draw();
     };
 
-    function updateRudder(val) {
-        boat.rudderAngle = parseFloat(val);
-        document.getElementById('rudder-val').innerText = val == 0 ? 'Center' : `${val}° ${val > 0 ? 'Starboard' : 'Port'}`;
+    window.updateBoatHeading = function(val, isDelta) {
+        let curAng = Math.round(((boat.heading || 0) * 180 / Math.PI) % 360);
+        if (curAng < 0) curAng += 360;
+        let newVal = isDelta ? curAng + val : parseFloat(val);
+        newVal = (newVal + 360) % 360;
+        boat.heading = newVal * Math.PI / 180;
+        if (document.getElementById('val-rot')) document.getElementById('val-rot').innerText = `${Math.round(newVal)}°`;
+        if (document.getElementById('slider-rot')) document.getElementById('slider-rot').value = newVal;
+        draw();
+    };
+
+
+    window.startMoveEntity = function() { movingEntity = selectedEntity; closeTooltip(); }
+    window.closeTooltip = function() { document.getElementById('entity-tooltip').style.display = 'none'; selectedEntity = null; draw(); }
+    window.deleteSelected = function() {
+        obstacles = obstacles.filter(o => o !== selectedEntity);
+        objectives = objectives.filter(o => o !== selectedEntity);
+        closeTooltip();
+    }
+
+    // --- INPUT HANDLING ---
+    function getWorldCoords(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: cameraX + (clientX - rect.left - width / 2) / scale,
+            y: cameraY + (clientY - rect.top - height / 2) / scale
+        };
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
+
+        // 1. Check if tapped on Wind Indicator
+        if (Math.hypot(clickX - (width - 60), clickY - 60) < 50) {
+            document.getElementById('wind-dialog').style.display = 'block';
+            document.getElementById('entity-tooltip').style.display = 'none';
+            selectedEntity = null;
+            draw();
+            return;
+        }
+
+        const w = getWorldCoords(e.clientX, e.clientY);
+
+        // 2. Handle object placement/moving
+        if (movingEntity) {
+            movingEntity.x = w.x; movingEntity.y = w.y;
+            movingEntity = null; draw(); return;
+        }
+
+        // 3. Handle specific creation modes
+        if (currentMode === 'buoy') obstacles.push({ x: w.x, y: w.y });
+        else if (currentMode === 'dock') objectives.push({ type: 'dock', x: w.x, y: w.y, w: 3, h: 30, angle: 0 });
+        else if (currentMode === 'finish') objectives.push({ type: 'finish', x: w.x, y: w.y, w: 30, angle: 0 });
+        else if (currentMode === 'boat') {
+            boat.x = w.x; boat.y = w.y;
+            boat.vx = 0; boat.vy = 0; boat.angularVelocity = 0;
+            cameraFollowsBoat = true; updateUI();
+        } 
+        // 4. Handle View Mode (Pan & Select)
+        else if (currentMode === 'view') {
+            document.getElementById('wind-dialog').style.display = 'none';
+            let hit = getEntityAt(w.x, w.y);
+            if (hit) {
+                showTooltip(hit, e.clientX, e.clientY);
+            } else {
+                closeTooltip();
+                isDragging = true;
+                lastDragX = e.clientX; lastDragY = e.clientY;
+                cameraFollowsBoat = false;
+            }
+        }
+        draw();
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDragging || currentMode !== 'view') return;
+        cameraX -= (e.clientX - lastDragX) / scale;
+        cameraY -= (e.clientY - lastDragY) / scale;
+        lastDragX = e.clientX; lastDragY = e.clientY;
+        draw();
+    });
+
+    window.addEventListener('pointerup', () => { isDragging = false; });
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        cameraFollowsBoat = false;
+        const zoomIntensity = 0.1;
+        scale *= Math.exp((e.deltaY < 0 ? 1 : -1) * zoomIntensity);
+        
+        // Clamp scale to prevent zooming out too far on the map
+        scale = Math.max(0.2, Math.min(scale, 10)); 
+        draw();
+    }, { passive: false });
+
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            cameraFollowsBoat = false;
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            initialPinchDistance = Math.hypot(dx, dy);
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.hypot(dx, dy);
+            if (initialPinchDistance) {
+                scale *= dist / initialPinchDistance;
+                scale = Math.max(0.2, Math.min(scale, 10)); // Clamp
+                initialPinchDistance = dist;
+                draw();
+            }
+        }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { initialPinchDistance = null; });
+
+    function getCardinalDirection(deg) {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const idx = Math.round(((deg % 360) / 45)) % 8;
+        return directions[idx];
+    }
+
+    function onWindSliderChange() {
+        const speed = parseInt(document.getElementById('wind-speed-slider').value);
+        const dir = parseInt(document.getElementById('wind-dir-slider').value);
+        
+        document.getElementById('wind-speed-val').innerText = `${speed} mph`;
+        document.getElementById('wind-dir-val').innerText = `${dir}° (${getCardinalDirection(dir)})`;
+        
+        env.windSpeed = speed * 0.44704; // mph to m/s
+        env.windDirection = dir * (Math.PI / 180); // deg to rad
+        
         draw();
     }
 
-    function setTool(tool) {
-        currentTool = tool;
-        document.querySelectorAll('.toolbar .btn').forEach(b => b.classList.remove('active'));
-        if (document.getElementById(`btn-${tool}`)) document.getElementById(`btn-${tool}`).classList.add('active');
+    function adjustWindSpeed(delta) {
+        const slider = document.getElementById('wind-speed-slider');
+        let val = Math.max(0, Math.min(40, parseInt(slider.value) + delta));
+        slider.value = val;
+        onWindSliderChange();
     }
 
-    function resetBoat() {
-        boat.x = 0; boat.y = 0; boat.vx = 0; boat.vy = 0; boat.heading = 0; boat.angularVelocity = 0;
-        seats.forEach(s => s.action = 'none');
-        updateUI(); draw();
+    function adjustWindDir(delta) {
+        const slider = document.getElementById('wind-dir-slider');
+        let val = (parseInt(slider.value) + delta + 360) % 360;
+        slider.value = val;
+        onWindSliderChange();
     }
 
-    function clearMap() { objectives = []; obstacles = []; draw(); }
-    function closeTooltip() { document.getElementById('entity-tooltip').style.display = 'none'; draw(); }
-    function deleteSelected() { objectives = objectives.filter(o => o !== selectedEntity); obstacles = obstacles.filter(o => o !== selectedEntity); closeTooltip(); }
+    // --- STATE MANAGEMENT ---
+    function updateWindFromUI() {
+        const mph = parseFloat(document.getElementById('wind-speed-in').value);
+        const deg = parseFloat(document.getElementById('wind-dir-in').value);
+        env.windSpeed = mph * 0.44704;
+        env.windDirection = deg * (Math.PI / 180);
+        draw();
+    }
 
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
+    function resetSim() {
+        boat.x = 0;
+        boat.y = 0;
+        boat.vx = 0; boat.vy = 0; boat.angularVelocity = 0;
+        cameraFollowsBoat = true;
+        seats.forEach(s => s.action = 'easy');
+        document.getElementById('rudder').value = 0;
+        boat.rudderAngle = 0;
+        updateUI();
+        draw();
+    }
+
+    function saveScenario() {
+        // Save the current location key so the map loads correctly
+        const scenario = { env, obstacles, objectives, boat, loc: activeLocation };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scenario));
+        const dl = document.createElement('a');
+        dl.setAttribute("href", dataStr);
+        dl.setAttribute("download", "cox_scenario.json");
+        dl.click();
+    }
+
+    function loadScenario(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = JSON.parse(e.target.result);
+            if(data.env) {
+                document.getElementById('wind-speed-in').value = Math.round(data.env.windSpeed * 2.23694);
+                document.getElementById('wind-dir-in').value = Math.round(data.env.windDirection * 180 / Math.PI);
+                updateWindFromUI();
+            }
+            if(data.obstacles) obstacles = data.obstacles;
+            if(data.objectives) objectives = data.objectives;
+            if(data.boat) boat = data.boat;
+            
+            // Restore location
+            if(data.loc && document.getElementById('location-select')) {
+                document.getElementById('location-select').value = data.loc;
+                document.getElementById('location-select').dispatchEvent(new Event('change'));
+            }
+            
+            cameraFollowsBoat = true;
+            updateUI();
+            draw();
+        };
+        reader.readAsText(file);
+    }
+
+    function initUI() {
+        // Initialize Map
+        bgMap = L.map('map-background', {
+            zoomSnap: 0, // Allows smooth zooming matching our physics scale
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            touchZoom: false,
+            keyboard: false
+        });
         
-        let cx = canvas.width / 2 - (cameraFollowsBoat ? boat.x : camera.x) * camera.zoom;
-        let cy = canvas.height / 2 - (cameraFollowsBoat ? boat.y : camera.y) * camera.zoom;
-        ctx.translate(cx, cy);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 22
+        }).addTo(bgMap);
 
-        // Draw Objectives / Docks
-        objectives.forEach(obj => {
-            ctx.save();
-            ctx.translate(obj.x * camera.zoom, obj.y * camera.zoom);
-            ctx.rotate(obj.angle || 0);
-            ctx.fillStyle = '#78350f';
-            ctx.fillRect((-obj.w/2)*camera.zoom, (-obj.h/2)*camera.zoom, obj.w*camera.zoom, obj.h*camera.zoom);
-            ctx.restore();
+        document.getElementById('location-select').addEventListener('change', (e) => {
+            activeLocation = e.target.value;
+            if (activeLocation === 'empty') {
+                document.getElementById('map-background').style.display = 'none';
+            } else {
+                document.getElementById('map-background').style.display = 'block';
+                refLat = mapLocations[activeLocation].lat;
+                refLon = mapLocations[activeLocation].lon;
+            }
+            resetSim(); // Put boat back at local 0,0 (center of map)
         });
 
-        // Draw Buoys
-        obstacles.forEach(obs => {
-            ctx.beginPath();
-            ctx.arc(obs.x * camera.zoom, obs.y * camera.zoom, 0.4 * camera.zoom, 0, Math.PI * 2);
-            ctx.fillStyle = '#ef4444'; ctx.fill();
+        // Initialize Seats
+        const container = document.getElementById('seats-container');
+        seats.forEach((seat, idx) => {
+            const div = document.createElement('div');
+            div.className = 'seat-card';
+            div.innerHTML = `
+                <div style="font-weight:bold; color: ${seat.side==='Port'?'#ef4444':'#22c55e'}">${seat.name}</div>
+                <select id="seat-${idx}">
+                    <option value="easy">Sit Easy</option>
+                    <option value="row">Row</option>
+                    <option value="check">Check</option>
+                    <option value="back">Back</option>
+                </select>
+            `;
+            container.appendChild(div);
+            document.getElementById(`seat-${idx}`).addEventListener('change', (e) => {
+                seats[idx].action = e.target.value; draw();
+            });
         });
 
-        // Draw Boat
-        ctx.save();
-        ctx.translate(boat.x * camera.zoom, boat.y * camera.zoom);
-        ctx.rotate(boat.heading);
+        document.getElementById('rudder').addEventListener('input', (e) => {
+            boat.rudderAngle = parseFloat(e.target.value);
+            document.getElementById('rudder-val').innerText = boat.rudderAngle > 0 ? `Stbd ${boat.rudderAngle}°` : (boat.rudderAngle < 0 ? `Port ${Math.abs(boat.rudderAngle)}°` : 'Center');
+        });
 
-        ctx.beginPath();
-        ctx.ellipse(0, 0, (BOAT_WIDTH/2)*camera.zoom, (BOAT_LENGTH/2)*camera.zoom, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#cbd5e1'; ctx.fill(); ctx.strokeStyle = '#0284c7'; ctx.lineWidth = 2; ctx.stroke();
+        document.getElementById('btn-next-stroke').addEventListener('click', simulateStroke);
+        document.getElementById('btn-reset').addEventListener('click', resetSim);
+        document.getElementById('btn-clear-map').addEventListener('click', () => { obstacles = []; objectives = []; draw(); });
+        document.getElementById('btn-save').addEventListener('click', saveScenario);
+        document.getElementById('btn-load').addEventListener('click', () => document.getElementById('file-input').click());
+        document.getElementById('file-input').addEventListener('change', loadScenario);
 
-        ctx.restore();
-        ctx.restore();
+        const modes = ['view', 'boat', 'buoy', 'dock', 'finish', 'erase'];
+        modes.forEach(mode => {
+            document.getElementById(`mode-${mode}`).addEventListener('click', (e) => {
+                modes.forEach(m => document.getElementById(`mode-${m}`).classList.remove('active'));
+                e.target.classList.add('active');
+                currentMode = mode;
+            });
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        updateUI();
     }
 
     function updateUI() {
-        const speed = Math.hypot(boat.vx, boat.vy);
-        document.getElementById('speed-display').innerText = `${speed.toFixed(2)} m/s`;
+        const speedMagnitude = Math.sqrt(boat.vx*boat.vx + boat.vy*boat.vy);
+        document.getElementById('speed-display').innerText = `${speedMagnitude.toFixed(2)} m/s`;
+        
+        let deg = (boat.heading * 180 / Math.PI) % 360;
+        if(deg < 0) deg += 360;
+        
+        seats.forEach((seat, idx) => { document.getElementById(`seat-${idx}`).value = seat.action; });
+        
+        if (cameraFollowsBoat) {
+            cameraX = boat.x; cameraY = boat.y;
+        }
     }
 
+    initUI();
+    
+    // Automatically move popups to the body root so they overlay everything
     window.addEventListener('DOMContentLoaded', () => {
-        document.body.appendChild(document.getElementById('wind-dialog'));
-        document.body.appendChild(document.getElementById('entity-tooltip'));
+        const wDialog = document.getElementById('wind-dialog');
+        const eTooltip = document.getElementById('entity-tooltip');
         
-        const seatContainer = document.getElementById('seat-controls');
-        seatContainer.innerHTML = seats.map(s => `
-            <div class="seat-card">
-                <strong>${s.name}</strong>
-                <select onchange="seats.find(x=>x.id===${s.id}).action=this.value">
-                    <option value="none">Rest</option>
-                    <option value="row">Row</option>
-                    <option value="back">Back</option>
-                    <option value="check">Check</option>
-                </select>
-            </div>
-        `).join('');
-
-        function resize() {
-            canvas.width = document.getElementById('water-container').clientWidth;
-            canvas.height = document.getElementById('water-container').clientHeight;
-            draw();
+        if (wDialog) {
+            document.body.appendChild(wDialog);
+            wDialog.style.zIndex = '9999';
         }
-        window.addEventListener('resize', resize);
-        resize();
+        if (eTooltip) {
+            document.body.appendChild(eTooltip);
+            eTooltip.style.zIndex = '9999';
+        }
     });
-    </script>
+</script>
+        <!-- MOVED OUTSIDE CONTAINERS -->
+    <div id="wind-dialog" class="popup-panel" style="top: 80px; right: 15px; width: 260px;">
+        <h3>Wind Settings</h3>
+        <div style="margin-bottom: 12px;">
+            <div class="popup-row"><span>Speed:</span><strong id="wind-speed-val">12 mph</strong></div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindSpeed(-1)">-</button>
+                <input type="range" id="wind-speed-slider" min="0" max="20" value="12" style="flex:1;" oninput="onWindSliderChange()">
+                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindSpeed(1)">+</button>
+            </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+            <div class="popup-row"><span>Direction:</span><strong id="wind-dir-val">180° (S)</strong></div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindDir(-5)">-</button>
+                <input type="range" id="wind-dir-slider" min="0" max="360" step="5" value="180" style="flex:1;" oninput="onWindSliderChange()">
+                <button class="btn" style="padding: 4px 10px;" onclick="adjustWindDir(5)">+</button>
+            </div>
+        </div>
+        <button class="btn btn-primary" style="padding:8px; margin-top: 4px;" onclick="document.getElementById('wind-dialog').style.display='none'; draw();">Done</button>
+    </div>
+
+    <div id="entity-tooltip" class="popup-panel">
+        <h3 id="tooltip-title">Edit Object</h3>
+        <div id="tooltip-content"></div>
+        <div class="popup-actions" id="tooltip-actions"></div>
+    </div>
 </body>
 </html>
