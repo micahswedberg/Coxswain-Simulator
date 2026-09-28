@@ -91,6 +91,50 @@
             display: none;
         }
 
+        /* Settings Menu FAB */
+        #settings-menu-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        #settings-options {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            width: 180px;
+            position: absolute;
+            bottom: 60px; /* Pops up right above the gear */
+            right: 0;
+            padding: 10px;
+        }
+        
+        #settings-options.open {
+            display: flex;
+        }
+
+        .menu-item-btn {
+            background: #334155;
+            color: white;
+            border: 1px solid #475569;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: left;
+            font-size: 1rem;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .menu-item-btn.danger {
+            color: #fca5a5;
+        }
+
         .toolbar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; flex-shrink: 0; }
         .toolbar::-webkit-scrollbar { height: 4px; }
         .toolbar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
@@ -171,6 +215,17 @@
             <div class="popup-actions" id="tooltip-actions"></div>
         </div>
     </div>
+
+    <!-- Settings Menu FAB (Bottom Right) -->
+        <div id="settings-menu-container">
+            <div id="settings-toggle" class="build-btn" onclick="toggleSettingsMenu()">⚙️</div>
+            <div id="settings-options" class="popup-panel">
+                <button class="menu-item-btn" onclick="resetSim(); toggleSettingsMenu();">🔄 Reset Sim</button>
+                <button class="menu-item-btn danger" onclick="clearMap(); toggleSettingsMenu();">🗑️ Clear Map</button>
+                <button class="menu-item-btn" onclick="saveScenario(); toggleSettingsMenu();">💾 Save Scenario</button>
+                <button class="menu-item-btn" onclick="loadScenario(); toggleSettingsMenu();">📂 Load Scenario</button>
+            </div>
+        </div>
     
     <div id="controls-container">
         <!-- Location Select Dropdown -->
@@ -181,23 +236,6 @@
                 <option value="charles">Charles River, Boston</option>
                 <option value="empty">Blank Water (No Map)</option>
             </select>
-        </div>
-
-        <div class="toolbar">
-            <button class="btn active" id="mode-view">Pan / View</button>
-            <button class="btn" id="mode-boat">Move Boat</button>
-            <button class="btn" id="mode-buoy">Add Buoy</button>
-            <button class="btn" id="mode-dock">Add Dock</button>
-            <button class="btn" id="mode-finish">Add Finish Line</button>
-            <button class="btn danger" id="mode-erase">Erase Item</button>
-        </div>
-
-        <div class="toolbar" style="padding-bottom: 5px;">
-            <button class="btn" id="btn-reset">Reset Sim</button>
-            <button class="btn" id="btn-clear-map">Clear Map</button>
-            <button class="btn" id="btn-save">Save Scenario</button>
-            <button class="btn" id="btn-load">Load Scenario</button>
-            <input type="file" id="file-input" style="display:none" accept=".json">
         </div>
 
         <div class="rudder-control">
@@ -914,6 +952,34 @@
         }
         draw();
     });
+
+    window.toggleSettingsMenu = function() {
+        const settingsMenu = document.getElementById('settings-options');
+        settingsMenu.classList.toggle('open');
+        
+        // Auto-close build menu if it's open
+        const buildMenu = document.getElementById('build-options');
+        if (buildMenu && buildMenu.classList.contains('open')) {
+            buildMenu.classList.remove('open');
+            if (isEraserMode) toggleEraser();
+        }
+    };
+
+    // Update your existing toggleBuildMenu to close settings when opened
+    window.toggleBuildMenu = function() {
+        const menu = document.getElementById('build-options');
+        menu.classList.toggle('open');
+        
+        if (!menu.classList.contains('open') && isEraserMode) {
+            toggleEraser(); 
+        }
+
+        // Auto-close settings menu if it's open
+        const settingsMenu = document.getElementById('settings-options');
+        if (settingsMenu && settingsMenu.classList.contains('open')) {
+            settingsMenu.classList.remove('open');
+        }
+    };
 
     window.addEventListener('pointermove', (e) => {
         if (!isDragging || currentMode !== 'view') return;
