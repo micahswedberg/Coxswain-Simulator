@@ -76,13 +76,6 @@
 
             <button class="btn btn-primary" style="padding:8px; margin-top: 4px;" onclick="document.getElementById('wind-dialog').style.display='none'; draw();">Done</button>
         </div>
-
-        <!-- Entity Editor Tooltip -->
-        <div id="entity-tooltip" class="popup-panel">
-            <h3 id="tooltip-title">Edit Object</h3>
-            <div id="tooltip-content"></div>
-            <div class="popup-actions" id="tooltip-actions"></div>
-        </div>
     </div>
     
     <div id="controls-container">
@@ -103,6 +96,13 @@
 
         <div class="seat-grid" id="seats-container"></div>
         <button class="btn btn-primary" id="btn-next-stroke" onclick="simulateStroke()">Simulate Next Stroke (+4s)</button>
+    </div>
+
+    <!-- Entity Editor Tooltip -->
+    <div id="entity-tooltip" class="popup-panel">
+        <h3 id="tooltip-title">Edit Object</h3>
+        <div id="tooltip-content"></div>
+        <div class="popup-actions" id="tooltip-actions"></div>
     </div>
 
     <script src="app.js"></script>
