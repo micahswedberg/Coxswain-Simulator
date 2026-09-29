@@ -32,6 +32,9 @@ let selectedEntity = null, movingEntity = null;
 const env = { windSpeed: 5.36, windDirection: Math.PI, currentSpeed: 0.0, currentDirection: 0 };
 const TIME_STEP = 4.0;
 const BOAT_MASS = 950, BOAT_LENGTH = 17.5, BOAT_WIDTH = 0.6;
+const halfLength = boat.length ? boat.length / 2 : 15; 
+const halfWidth = boat.width ? boat.width / 2 : 4;
+const lightRadius = 2.5;
 const MOI = (1/12) * BOAT_MASS * (Math.pow(BOAT_LENGTH, 2) + Math.pow(BOAT_WIDTH, 2)) * 5;
 
 const FORCE_ROW = 300, FORCE_BACK = 200, DRAG_CHECK_LINEAR = 300, DRAG_CHECK_ROTATIONAL = 4000;
@@ -60,10 +63,6 @@ const seats = [
     { id: 8, name: "Stroke (8)", side: "Port", xOff: -LAT_DIST, yOff: -4.5, action: "easy" },
     { id: 7, name: "Seat 7", side: "Starboard", xOff: LAT_DIST, yOff: -3, action: "easy" }
 ];
-
-const halfLength = boat.length ? boat.length / 2 : 15; 
-const halfWidth = boat.width ? boat.width / 2 : 4;
-const lightRadius = 2.5;
 
 // ==========================================
 // 2. PHYSICS ENGINE & COLLISION
