@@ -61,6 +61,10 @@ const seats = [
     { id: 7, name: "Seat 7", side: "Starboard", xOff: LAT_DIST, yOff: -3, action: "easy" }
 ];
 
+const halfLength = boat.length ? boat.length / 2 : 15; 
+const halfWidth = boat.width ? boat.width / 2 : 4;
+const lightRadius = 2.5;
+
 // ==========================================
 // 2. PHYSICS ENGINE & COLLISION
 // ==========================================
@@ -258,6 +262,25 @@ window.draw = function() {
             ctx.lineTo((seat.xOff > 0 ? 0.3 : -0.3) + Math.cos(oarAngle) * 2.5, -seat.yOff + Math.sin(oarAngle) * 2.5);
             ctx.stroke();
         });
+
+        // 1. Stern Marker (White dot at the back)
+        ctx.beginPath();
+        ctx.arc(-halfLength, 0, lightRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+
+        // 2. Port Light (Red on the Left side of the Bow)
+        ctx.beginPath();
+        ctx.arc(halfLength - 2, -halfWidth, lightRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#FF0000';
+        ctx.fill();
+
+        // 3. Starboard Light (Green on the Right side of the Bow)
+        ctx.beginPath();
+        ctx.arc(halfLength - 2, halfWidth, lightRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#00FF00';
+        ctx.fill();
+
         ctx.restore();
     }
 
