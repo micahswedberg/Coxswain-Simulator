@@ -431,6 +431,12 @@ canvas.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1) {
+        cameraX -= (e.touches[0].clientX - lastTouchX) / scale;
+        cameraY -= (e.touches[0].clientY - lastTouchY) / scale;
+        lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
+        draw(); e.preventDefault();
+    }
     if (isDraggingTool) {
         const ghost = document.getElementById('drag-ghost');
         ghost.style.left = e.touches[0].clientX + 'px'; ghost.style.top = e.touches[0].clientY + 'px';
@@ -446,13 +452,6 @@ canvas.addEventListener('touchmove', (e) => {
         obstacles = obstacles.filter(obs => Math.hypot(obs.x - w.x, obs.y - w.y) > (30/scale));
         objectives = objectives.filter(obj => Math.hypot(obj.x - w.x, obj.y - w.y) > (30/scale));
         draw(); e.preventDefault(); return;
-    }
-
-    if (e.touches.length === 1) {
-        cameraX -= (e.touches[0].clientX - lastTouchX) / scale;
-        cameraY -= (e.touches[0].clientY - lastTouchY) / scale;
-        lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
-        draw(); e.preventDefault();
     }
 }, { passive: false });
 
