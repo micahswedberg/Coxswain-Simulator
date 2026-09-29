@@ -379,14 +379,33 @@ document.addEventListener('touchend', (e) => {
         const touch = e.changedTouches[0];
         const rect = canvas.getBoundingClientRect();
         
-        if (touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        // 1. Get the toolbar rectangle to check if the touch ended over the controls
+        const controls = document.getElementById('controls-container');
+        const controlsRect = controls ? controls.getBoundingClientRect() : null;
+        
+        const isOverControls = controlsRect && (
+            touch.clientX >= controlsRect.left &&
+            touch.clientX <= controlsRect.right &&
+            touch.clientY >= controlsRect.top &&
+            touch.clientY <= controlsRect.bottom
+        );
+
+        // 2. Only place the entity if it is INSIDE the canvas AND NOT over the toolbar
+        if (!isOverControls && touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
             const coords = getWorldCoords(touch.clientX, touch.clientY);
-            if (draggedToolType === 'boat') { boat.x = coords.x; boat.y = coords.y; boat.vx = 0; boat.vy = 0; boat.angularVelocity = 0; boat.hidden = false; } 
-            else if (draggedToolType === 'dock') { objectives.push({ type: 'dock', x: coords.x, y: coords.y, w: 3, h: 30, angle: 0 }); } 
-            else if (draggedToolType === 'buoy') { obstacles.push({ type: 'buoy', x: coords.x, y: coords.y, radius: 2 }); }
+            if (draggedToolType === 'boat') { 
+                boat.x = coords.x; boat.y = coords.y; boat.vx = 0; boat.vy = 0; boat.angularVelocity = 0; boat.hidden = false; 
+            } 
+            else if (draggedToolType === 'dock') { 
+                objectives.push({ type: 'dock', x: coords.x, y: coords.y, w: 3, h: 30, angle: 0 }); 
+            } 
+            else if (draggedToolType === 'buoy') { 
+                obstacles.push({ type: 'buoy', x: coords.x, y: coords.y, radius: 2 }); 
+            }
             draw();
         } else if (draggedToolType === 'boat') {
-            boat.hidden = false; draw(); // Reset cancelled drag
+            boat.hidden = false; 
+            draw(); // Reset cancelled drag
         }
     }
 });
@@ -431,16 +450,17 @@ canvas.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 canvas.addEventListener('touchmove', (e) => {
+    if (isDraggingTool) {
+        const ghost = document.getElementById('drag-ghost');
+        ghost.style.left = e.touches[0].clientX + 'px'; ghost.style.top = e.touches[0].clientY + 'px';
+        e.preventDefault(); return;
+    }
+
     if (e.touches.length === 1) {
         cameraX -= (e.touches[0].clientX - lastTouchX) / scale;
         cameraY -= (e.touches[0].clientY - lastTouchY) / scale;
         lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY;
         draw(); e.preventDefault();
-    }
-    if (isDraggingTool) {
-        const ghost = document.getElementById('drag-ghost');
-        ghost.style.left = e.touches[0].clientX + 'px'; ghost.style.top = e.touches[0].clientY + 'px';
-        e.preventDefault(); return;
     }
     
     if (isEraserMode) {
