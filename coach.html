@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coach studio</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/common.css"><link rel="stylesheet" href="css/coach.css">
+</head><body>
+<aside><h1>Coach studio</h1>
+  <nav><button data-tab="t-scn" class="on">Scenario</button><button data-tab="t-set">Settings</button></nav>
+  <div id="t-scn" class="tab">
+    <label>Name <input id="nm"></label>
+    <div class="line"><input id="q" placeholder="Find a lake, river or address"><button id="go">Find</button><button id="loc">My location</button></div>
+    <h4>Place on the map</h4>
+    <div class="tools">
+      <button data-tool="select" class="on">Select</button><button data-tool="start">Start</button><button data-tool="dock">Dock</button><button data-tool="buoy">Buoy</button>
+      <button data-tool="keepout">Keep-out zone</button><button data-tool="stake">Stakeboat line</button><button data-tool="boat">Other boat</button>
+    </div>
+    <div id="hint"></div><button id="fin">Finish shape</button>
+    <h4>Wind (direction it blows toward)</h4>
+    <label>Speed <b id="wm"></b></label><input id="wmph" type="range" min="0" max="25" value="8">
+    <label>Direction <b id="wd"></b></label><input id="wdir" type="range" min="0" max="355" step="5" value="180">
+    <h4>Selected object</h4><div id="insp"></div>
+    <h4>Files</h4>
+    <label>Published <select id="pub"><option value="">Choose…</option></select></label>
+    <div class="tools"><button id="new">New</button><button id="open">Open file</button><button id="dl" class="primary">Download scenario</button><button id="dli">Download index.json</button></div>
+    <input id="file" type="file" accept=".json" hidden>
+  </div>
+  <div id="t-set" class="tab" hidden>
+    <p>These values apply to every scenario. Download config.json and commit it to the config folder.</p>
+    <div id="form"></div>
+    <div class="tools"><button id="dlc" class="primary">Download config.json</button><button id="ldc">Load config file</button></div>
+    <input id="cfile" type="file" accept=".json" hidden>
+  </div>
+</aside>
+<main><div id="map"></div><canvas id="cv"></canvas></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/util.js"></script><script src="js/physics.js"></script><script src="js/world.js"></script><script src="js/render.js"></script><script src="js/coach.js"></script>
+</body></html>
