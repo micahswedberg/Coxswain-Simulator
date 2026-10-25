@@ -1,0 +1,4 @@
+{ "scenarios": [
+  { "name": "Dock practice: Lake Carl Blackwell", "file": "dock-practice.json" },
+  { "name": "Stakeboat start: 4 lanes", "file": "stakeboat-start.json" }
+] }
