@@ -1,5 +1,0 @@
-{ "name": "Dock practice: Lake Carl Blackwell", "origin": { "lat": 36.1252, "lon": -97.2048 }, "wind": { "mph": 6, "dirDeg": 90 },
-  "start": { "x": 0, "y": 60, "heading": 0 },
-  "docks": [ { "x": 12, "y": 0, "w": 3, "h": 25, "angle": 0 } ],
-  "buoys": [ { "x": -6, "y": 25 } ], "boats": [ { "x": -15, "y": 10, "heading": 0, "len": 13 } ],
-  "keepouts": [ [ { "x": 25, "y": -30 }, { "x": 60, "y": -30 }, { "x": 60, "y": 80 }, { "x": 25, "y": 80 } ] ], "stakeboats": [] }
