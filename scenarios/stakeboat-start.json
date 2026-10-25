@@ -1,0 +1,4 @@
+{ "name": "Stakeboat start: 4 lanes", "origin": { "lat": 36.1252, "lon": -97.2048 }, "wind": { "mph": 4, "dirDeg": 200 },
+  "start": { "x": 3, "y": -30, "heading": 0 },
+  "stakeboats": [ { "x": 0, "y": 0, "angle": 0, "lanes": 4, "spacing": 5 } ],
+  "docks": [], "buoys": [], "boats": [], "keepouts": [] }

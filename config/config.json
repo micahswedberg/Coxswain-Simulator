@@ -1,0 +1,13 @@
+{
+  "boats": {
+    "8+": { "length": 17.5, "width": 0.6, "hullMass": 220, "rowerMass": 85, "coxMass": 50, "seats": 8, "bowSeatY": 6.0, "coxY": -7.0, "dragScale": 1.0 },
+    "4+": { "length": 13.4, "width": 0.6, "hullMass": 130, "rowerMass": 85, "coxMass": 50, "seats": 4, "bowSeatY": 3.5, "coxY": -4.8, "dragScale": 0.65 }
+  },
+  "dock":  { "maxFwd": 0.5, "maxLat": 0.3, "maxAngle": 15, "buffer": 1.5 },
+  "stake": { "maxFwd": 0.5, "maxLat": 0.3, "maxAngle": 15, "buffer": 1.0 },
+  "physics": {
+    "strokeSeconds": 4, "forceRow": 300, "forceBack": 200, "holdDragLinear": 300, "holdDragRot": 4000, "lightCheckMult": 0.15,
+    "waterDragLinear": 200, "waterDragRot": 8000, "waterDragLat": 3000, "rudderArea": 0.00193548, "rudderMaxCopX": 0.0254,
+    "waterDensity": 1000, "windTorque": 1.8, "oarOffsetX": 1.2
+  }
+}
