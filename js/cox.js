@@ -2,7 +2,7 @@
 (async () => {
   const $ = id => document.getElementById(id), cv = $('cv');
   const cfg = await U.json('config/config.json'), idx = await U.json('scenarios/index.json');
-  const map = L.map('map', { zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomSnap: 0, maxZoom: 23 });
+  const map = L.map('map', { zoomControl: true, dragging: true, touchZoom: true, scrollWheelZoom: true, doubleClickZoom: true, boxZoom: false, keyboard: false, zoomSnap: 0, maxZoom: 23 });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 23, attribution: '© OpenStreetMap' }).addTo(map);
   const ACT = { easy: 'Easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Check' }, ORDER = Object.keys(ACT);
   let sc, boat, env, type = '8+', scale = 6, busy = false, done = false;
