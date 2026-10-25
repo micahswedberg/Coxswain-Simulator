@@ -1,5 +1,4 @@
 { "scenarios": [
-  { "name": "Dock practice: Lake Carl Blackwell", "file": "dock-practice.json" },
-  { "name": "Stakeboat start: 4 lanes", "file": "stakeboat-start.json" },
+  { "name": "lake-carl-blackwell-cove", "file": "lake-carl-blackwell-cove.json" },
   { "name": "Stars and Stripes - OKC", "file": "Stars and stripes - OKC.json" }
 ] }
