@@ -1,0 +1,16 @@
+:root{--bg:#0b2530;--pn:#123846;--ln:#25596e;--tx:#e6f4f1;--ac:#ff7a1a;--sf:#7fd1c7;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.35 "Avenir Next","Segoe UI",system-ui,sans-serif}
+button,select,input{font:inherit;color:var(--tx)}
+button{background:var(--ln);border:0;border-radius:10px;padding:10px 12px;min-height:44px;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--sf);outline-offset:2px}
+button.on,button.primary{background:var(--ac);color:#1a0d00;font-weight:700}
+input,select{background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:8px;min-height:40px}
+#map,#cv{position:absolute;inset:0;width:100%;height:100%}
+#map{z-index:0;background:#0c4a6e}#cv{z-index:1;pointer-events:none}
+#modal{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:rgba(5,15,20,.7)}
+#modal[hidden]{display:none}
+#modal .card{width:min(90vw,380px);background:var(--pn);border-radius:16px;padding:20px;border-top:6px solid var(--bad)}
+#modal.win .card{border-color:var(--ok)}
+#modal h2{margin:0 0 6px;font-size:1.5rem}
+#modal .row{display:flex;gap:8px;margin-top:14px}#modal .row button{flex:1}
