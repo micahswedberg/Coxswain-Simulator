@@ -7,6 +7,7 @@
   const ACT = { easy: 'Sit easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Light check' }, ORDER = Object.keys(ACT);
   let sc, boat, env, type = '8+', busy = false, done = false, follow = true;
   const view = { cx: 0, cy: 0, scale: 6, rot: 0 }, gi = { all: 0, bow: 0, stern: 0 };
+  let active = null;                       // the group button last used; only one group is active at a time
 
   function draw() {
     if (follow) { const c = Physics.center(boat); view.cx = c.x; view.cy = c.y; }
@@ -24,11 +25,12 @@
     }
   }
   const GROUPS = { bow: ['Bow pair', q => q.id <= 2], all: ['All seats', () => true], stern: ['Stern pair', (q, n) => q.id > n - 2] };
-  const groupsUI = () => document.querySelectorAll('#presets button').forEach(b => b.textContent = GROUPS[b.dataset.g][0] + '\n' + ACT[ORDER[gi[b.dataset.g]]]);
+  const groupsUI = () => document.querySelectorAll('#presets button[data-g]').forEach(b => b.textContent = GROUPS[b.dataset.g][0] + '\n' + ACT[ORDER[gi[b.dataset.g]]]);
+  const clearGroups = () => { Object.keys(gi).forEach(k => gi[k] = 0); active = null; };
   function reset() {
     const s = sc.start || { x: 0, y: 0, heading: 0 };
     boat = Physics.create(cfg, type, { x: s.x, y: s.y, heading: s.heading * U.D }); env = U.env(sc); busy = done = false;
-    $('modal').hidden = true; $('rud').value = 0; $('rv').textContent = 'Center'; Object.keys(gi).forEach(k => gi[k] = 0); follow = true; seatsUI(); groupsUI(); draw();
+    $('modal').hidden = true; $('rud').value = 0; $('rv').textContent = 'Center'; clearGroups(); follow = true; seatsUI(); groupsUI(); draw();
   }
   async function load(file) { sc = U.fill(await U.json('scenarios/' + file)); reset(); }
   function end(r) {
@@ -48,10 +50,13 @@
   idx.scenarios.forEach(s => $('scn').add(new Option(s.name, s.file)));
   $('scn').onchange = e => load(e.target.value);
   document.querySelectorAll('#boatsel button').forEach(b => b.onclick = () => { type = b.dataset.t; document.querySelectorAll('#boatsel button').forEach(x => x.classList.toggle('on', x === b)); reset(); });
-  document.querySelectorAll('#presets button').forEach(b => b.onclick = () => {   // each group cycles on its own pointer and overwrites every seat in it
-    const g = b.dataset.g; gi[g] = (gi[g] + 1) % ORDER.length;
+  document.querySelectorAll('#presets button[data-g]').forEach(b => b.onclick = () => {
+    const g = b.dataset.g;
+    if (active !== g) { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); active = g; }   // switching groups: every seat sits easy, other buttons reset, new group starts at Row
+    gi[g] = (gi[g] + 1) % ORDER.length;
     boat.seats.filter(q => GROUPS[g][1](q, boat.seats.length)).forEach(q => q.action = ORDER[gi[g]]); seatsUI(); groupsUI(); draw();
   });
+  $('wenough').onclick = () => { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); seatsUI(); groupsUI(); draw(); };   // "Weigh enough": everyone sits easy
   $('rud').oninput = e => { const v = +e.target.value; boat.state.rudder = v; $('rv').textContent = v ? Math.abs(v) + '° ' + (v > 0 ? 'right' : 'left') : 'Center'; };
   $('go').onclick = stroke; $('reset').onclick = reset; $('m-retry').onclick = reset; $('m-close').onclick = () => $('modal').hidden = true;
   const zoom = f => { view.scale = Math.min(40, Math.max(1, view.scale * f)); draw(); };
