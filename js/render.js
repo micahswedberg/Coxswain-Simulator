@@ -5,7 +5,7 @@ const Render = {
   draw(cv, view, sc, o = {}) {
     const c = cv.getContext('2d'), r = devicePixelRatio || 1, W = cv.width / r, H = cv.height / r, k = view.scale, sel = o.sel && o.sel.o, SEL = '#7fd1c7';
     c.setTransform(r, 0, 0, r, 0, 0); c.clearRect(0, 0, W, H); c.save();
-    c.translate(W / 2, H / 2); c.scale(k, k); c.translate(-view.cx, -view.cy);
+    c.translate(W / 2, H / 2); c.rotate(view.rot || 0); c.scale(k, k); c.translate(-view.cx, -view.cy);
     const poly = (z, close) => { c.beginPath(); z.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)); if (close) c.closePath(); };
     for (const z of sc.keepouts) { poly(z, true); c.fillStyle = 'rgba(239,68,68,.35)'; c.fill(); c.lineWidth = (z === sel ? 3 : 1.5) / k; c.strokeStyle = z === sel ? SEL : '#ef4444'; c.stroke(); }
     if (o.draft && o.draft.length) { poly(o.draft, false); c.strokeStyle = '#fff'; c.lineWidth = 2 / k; c.stroke(); o.draft.forEach(p => { c.beginPath(); c.arc(p.x, p.y, 3 / k, 0, 7); c.fillStyle = '#fff'; c.fill(); }); }
@@ -33,8 +33,8 @@ const Render = {
     c.restore();
     const x = W - 46, y = 46;                                   // wind compass: arrow points where the wind blows toward
     c.fillStyle = 'rgba(11,37,48,.8)'; c.beginPath(); c.arc(x, y, 30, 0, 7); c.fill();
-    c.save(); c.translate(x, y); c.rotate(sc.wind.dirDeg * U.D - Math.PI / 2); c.strokeStyle = c.fillStyle = '#e6f4f1'; c.lineWidth = 2;
+    c.save(); c.translate(x, y); c.rotate(sc.wind.dirDeg * U.D - Math.PI / 2 + (view.rot || 0)); c.strokeStyle = c.fillStyle = '#e6f4f1'; c.lineWidth = 2;
     c.beginPath(); c.moveTo(-16, 0); c.lineTo(8, 0); c.stroke(); c.beginPath(); c.moveTo(16, 0); c.lineTo(6, -6); c.lineTo(6, 6); c.fill(); c.restore();
-    c.fillStyle = '#e6f4f1'; c.font = '12px system-ui'; c.textAlign = 'center'; c.fillText(sc.wind.mph + ' mph', x, y + 46);
+    c.fillStyle = '#e6f4f1'; c.font = '12px system-ui'; c.textAlign = 'center'; c.fillText(sc.wind.mph + ' mph', x, y + 58); const a = view.rot || 0; c.fillText('N', x + Math.sin(a) * 39, y - Math.cos(a) * 39 + 4);
   }
 };

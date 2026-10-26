@@ -9,15 +9,16 @@
   <div id="boatsel"><button data-t="4+">4+</button><button data-t="8+" class="on">8+</button></div>
   <b id="spd">0.0 m/s</b></header>
 <main id="stage"><div id="map"></div><canvas id="cv"></canvas>
-  <div id="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button></div></main>
+  <div id="attr">© OpenStreetMap contributors</div>
+  <div id="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="north" aria-label="Face north">N</button><button id="fol" aria-label="Follow boat">◎</button></div></main>
 <section id="panel">
   <label>Rudder: <b id="rv">Center</b><input id="rud" type="range" min="-45" max="45" value="0"></label>
   <div id="seats"></div>
-  <div id="presets"><button data-a="row">All row</button><button data-a="back">All back</button><button data-a="hold">All hold</button><button data-a="easy">All easy</button></div>
+  <div id="presets"><button data-g="bow">Bow pair</button><button data-g="all">All seats</button><button data-g="stern">Stern pair</button></div>
   <div class="acts"><button id="reset">Reset</button><button id="go" class="primary">Take stroke</button></div>
 </section>
 <div id="modal" hidden><div class="card"><h2 id="m-t"></h2><p id="m-r"></p><p id="m-s"></p>
   <div class="row"><button id="m-close">Look around</button><button id="m-retry" class="primary">Try again</button></div></div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/util.js"></script><script src="js/physics.js"></script><script src="js/world.js"></script><script src="js/render.js"></script><script src="js/cox.js"></script>
+<script src="js/util.js"></script><script src="js/physics.js"></script><script src="js/world.js"></script><script src="js/render.js"></script><script src="js/camera.js"></script><script src="js/cox.js"></script>
 </body></html>

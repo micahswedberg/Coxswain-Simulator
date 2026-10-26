@@ -2,15 +2,16 @@
 (async () => {
   const $ = id => document.getElementById(id), cv = $('cv');
   const cfg = await U.json('config/config.json'), idx = await U.json('scenarios/index.json');
-  const map = L.map('map', { zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomSnap: 0, maxZoom: 23 });
+  const map = L.map('map', { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, zoomSnap: 0, maxZoom: 23 });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 23, attribution: '© OpenStreetMap' }).addTo(map);
-  const ACT = { easy: 'Easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Check' }, ORDER = Object.keys(ACT);
-  let sc, boat, env, type = '8+', scale = 6, busy = false, done = false;
+  const ACT = { easy: 'Sit easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Light check' }, ORDER = Object.keys(ACT);
+  let sc, boat, env, type = '8+', busy = false, done = false, follow = true;
+  const view = { cx: 0, cy: 0, scale: 6, rot: 0 }, gi = { all: 0, bow: 0, stern: 0 };
 
   function draw() {
-    const c = Physics.center(boat), o = sc.origin;
-    map.setView(U.w2ll(o, c), U.zoomFor(o.lat, scale), { animate: false });
-    Render.fit(cv); Render.draw(cv, { cx: c.x, cy: c.y, scale }, sc, { boat });
+    if (follow) { const c = Physics.center(boat); view.cx = c.x; view.cy = c.y; }
+    Camera.syncMap(map, $('map'), view, sc.origin);
+    Render.fit(cv); Render.draw(cv, view, sc, { boat });
     $('spd').textContent = Math.hypot(boat.state.vx, boat.state.vy).toFixed(1) + ' m/s';
   }
   function seatsUI() {
@@ -22,10 +23,12 @@
       box.append(b);
     }
   }
+  const GROUPS = { bow: ['Bow pair', q => q.id <= 2], all: ['All seats', () => true], stern: ['Stern pair', (q, n) => q.id > n - 2] };
+  const groupsUI = () => document.querySelectorAll('#presets button').forEach(b => b.textContent = GROUPS[b.dataset.g][0] + '\n' + ACT[ORDER[gi[b.dataset.g]]]);
   function reset() {
     const s = sc.start || { x: 0, y: 0, heading: 0 };
     boat = Physics.create(cfg, type, { x: s.x, y: s.y, heading: s.heading * U.D }); env = U.env(sc); busy = done = false;
-    $('modal').hidden = true; $('rud').value = 0; $('rv').textContent = 'Center'; seatsUI(); map.invalidateSize(); draw();
+    $('modal').hidden = true; $('rud').value = 0; $('rv').textContent = 'Center'; Object.keys(gi).forEach(k => gi[k] = 0); follow = true; seatsUI(); groupsUI(); draw();
   }
   async function load(file) { sc = U.fill(await U.json('scenarios/' + file)); reset(); }
   function end(r) {
@@ -45,10 +48,16 @@
   idx.scenarios.forEach(s => $('scn').add(new Option(s.name, s.file)));
   $('scn').onchange = e => load(e.target.value);
   document.querySelectorAll('#boatsel button').forEach(b => b.onclick = () => { type = b.dataset.t; document.querySelectorAll('#boatsel button').forEach(x => x.classList.toggle('on', x === b)); reset(); });
-  document.querySelectorAll('#presets button').forEach(b => b.onclick = () => { boat.seats.forEach(q => q.action = b.dataset.a); seatsUI(); draw(); });
+  document.querySelectorAll('#presets button').forEach(b => b.onclick = () => {   // each group cycles on its own pointer and overwrites every seat in it
+    const g = b.dataset.g; gi[g] = (gi[g] + 1) % ORDER.length;
+    boat.seats.filter(q => GROUPS[g][1](q, boat.seats.length)).forEach(q => q.action = ORDER[gi[g]]); seatsUI(); groupsUI(); draw();
+  });
   $('rud').oninput = e => { const v = +e.target.value; boat.state.rudder = v; $('rv').textContent = v ? Math.abs(v) + '° ' + (v > 0 ? 'right' : 'left') : 'Center'; };
   $('go').onclick = stroke; $('reset').onclick = reset; $('m-retry').onclick = reset; $('m-close').onclick = () => $('modal').hidden = true;
-  $('zin').onclick = () => { scale = Math.min(20, scale * 1.3); draw(); }; $('zout').onclick = () => { scale = Math.max(1.5, scale / 1.3); draw(); };
+  const zoom = f => { view.scale = Math.min(40, Math.max(1, view.scale * f)); draw(); };
+  $('zin').onclick = () => zoom(1.3); $('zout').onclick = () => zoom(1 / 1.3);
+  $('north').onclick = () => { view.rot = 0; draw(); }; $('fol').onclick = () => { follow = true; draw(); };
+  Camera.attach(cv, view, { limits: [1, 40], change: k => { if (k === 'pan') follow = false; }, draw: () => boat && draw() });
   addEventListener('resize', () => { map.invalidateSize(); if (boat) draw(); });
   const want = new URLSearchParams(location.search).get('s') || idx.scenarios[0].file;
   $('scn').value = want; await load(want);

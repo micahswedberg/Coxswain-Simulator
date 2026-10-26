@@ -11,7 +11,7 @@ const Physics = (() => {
     }
     const com = mom / mass, h = start.heading || 0;
     seats.forEach(q => q.yOff = q.y - com);   // oar position relative to centre of mass
-    return { type, spec: s, seats, mass, com, moi: mass / 12 * (s.length ** 2 + s.width ** 2) * 5,
+    return { type, spec: s, seats, mass, com, moi: cfg.physics.yawInertiaScale * (s.hullMass * ((s.length ** 2 + s.width ** 2) / 12 + com ** 2) + s.coxMass * (s.coxY - com) ** 2 + seats.reduce((a, q) => a + s.rowerMass * q.yOff ** 2, 0)),   // yaw inertia from the actual mass layout, x scale for water carried along
       rudderY: -(s.length / 2 - 0.75) - com,
       state: { x: start.x + Math.sin(h) * com, y: start.y - Math.cos(h) * com, vx: 0, vy: 0, heading: h, w: 0, rudder: 0 } };
   }
@@ -42,7 +42,7 @@ const Physics = (() => {
     const wx = Math.sin(env.windDir) * env.windSpeed, wy = -Math.cos(env.windDir) * env.windSpeed;   // wind
     const wF = wx * hs - wy * hc, wL = wx * hc + wy * hs;
     fF += Math.sign(wF) * wF * wF * 2; fL += Math.sign(wL) * wL * wL * 20; T += Math.sign(wL) * wL * wL * P.windTorque;
-    fF -= vF * P.waterDragLinear * k; fL -= vL * P.waterDragLat * k; T -= st.w * P.waterDragRot * k;   // hydrodynamic drag
+    fF -= vF * P.waterDragLinear * k; fL -= vL * P.waterDragLat * k; T -= st.w * P.waterDragLat * k * (b.spec.length ** 2 / 12) * P.yawDampScale;   // hydrodynamic drag; yaw damping = the same lateral drag acting along the whole hull length
     st.vx += (fF * hs + fL * hc) / b.mass * dt; st.vy += (-fF * hc + fL * hs) / b.mass * dt; st.w += T / b.moi * dt;
     st.x += st.vx * dt; st.y += st.vy * dt; st.heading += st.w * dt;
     return { vF, vL };

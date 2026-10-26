@@ -4,22 +4,22 @@
   let cfg = await U.json('config/config.json');
   const blank = () => ({ name: 'New scenario', origin: null, wind: { mph: 8, dirDeg: 180 }, start: null, docks: [], buoys: [], keepouts: [], stakeboats: [], boats: [] });
   let sc = blank(), sel = null, tool = 'select', draft = [], drag = null;
-  const map = L.map('map', { zoomSnap: 0, zoomDelta: 0.5, maxZoom: 23, doubleClickZoom: false }).setView([36.1252, -97.2048], 17);
+  const map = L.map('map', { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, zoomSnap: 0, maxZoom: 23 });
+  const ATTR = { Map: '© OpenStreetMap contributors', Satellite: 'Imagery © Esri' };
+  let home = { lat: 36.1252, lon: -97.2048 }, layer = 'Map';        // home = map reference until the first object fixes sc.origin
+  const view = { cx: 0, cy: 0, scale: 3, rot: 0 };
   const base = { Map: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 23, attribution: '© OpenStreetMap' }),
     Satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 23, attribution: 'Esri' }) };
-  base.Map.addTo(map); L.control.layers(base).addTo(map);
+  base.Map.addTo(map);
 
   const KIND = { dock: 'docks', buoy: 'buoys', stake: 'stakeboats', boat: 'boats' };
-  const HINT = { select: 'Click an object to edit it, drag to move it. Drag empty map to pan.', start: 'Click where the boat starts.', dock: 'Click to place a dock.', buoy: 'Click to place a buoy.',
+  const HINT = { select: 'Click an object to edit it, drag to move it. Drag empty map to pan, scroll or pinch to zoom, twist with two fingers (or Shift-drag) to rotate.', start: 'Click where the boat starts.', dock: 'Click to place a dock.', buoy: 'Click to place a buoy.',
     keepout: 'Click each corner along the shoreline or hazard, then Finish shape (or press Enter).', stake: 'Click to place the stakeboat line. Set lanes and spacing on the right.', boat: 'Click to place a boat to avoid.' };
   const FIELDS = { docks: ['w', 'h', 'angle'], stakeboats: ['angle', 'lanes', 'spacing'], boats: ['len', 'heading'], start: ['heading'] };
-  const origin = () => sc.origin || { lat: map.getCenter().lat, lon: map.getCenter().lng };
-  const pxm = () => U.scaleFor(origin().lat, map.getZoom());
+  const origin = () => sc.origin || home, pxm = () => view.scale;
+  function goTo(lat, lon) { if (!sc.origin) { home = { lat, lon }; view.cx = view.cy = 0; } else { const w = U.ll2w(sc.origin, { lat, lng: lon }); view.cx = w.x; view.cy = w.y; } view.scale = 3; draw(); }
 
-  function draw() {
-    const o = origin(), c = U.ll2w(o, map.getCenter());
-    Render.fit(cv); Render.draw(cv, { cx: c.x, cy: c.y, scale: pxm() }, sc, { sel, draft, startLen: cfg.boats['8+'].length });
-  }
+  function draw() { Camera.syncMap(map, $('map'), view, origin()); Render.fit(cv); Render.draw(cv, view, sc, { sel, draft, startLen: cfg.boats['8+'].length }); }
   function pick(p) {
     const r = 12 / pxm(), dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
     if (sc.start && dist(p, sc.start) < Math.max(r, 4)) return { kind: 'start', o: sc.start };
@@ -43,7 +43,7 @@
   function del() { if (!sel) return; if (sel.kind === 'start') sc.start = null; else sc[sel.kind] = sc[sel.kind].filter(x => x !== sel.o); sel = null; inspect(); draw(); }
   function setTool(t) {
     tool = t; draft = []; document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
-    $('hint').textContent = HINT[t]; $('fin').classList.toggle('show', t === 'keepout'); map.getContainer().style.cursor = t === 'select' ? '' : 'crosshair'; draw();
+    $('hint').textContent = HINT[t]; $('fin').classList.toggle('show', t === 'keepout'); cv.style.cursor = t === 'select' ? '' : 'crosshair'; draw();
   }
   function finish() { if (draft.length >= 3) { sc.keepouts.push(draft); sel = { kind: 'keepouts', o: draft }; } draft = []; setTool('select'); inspect(); }
   function place(p) {
@@ -57,11 +57,10 @@
     setTool('select'); inspect();
   }
   const mv = (o, dx, dy) => Array.isArray(o) ? o.forEach(q => { q.x += dx; q.y += dy; }) : (o.x += dx, o.y += dy);
-  map.on('click', e => { const o = origin(), p = U.ll2w(o, e.latlng); if (tool !== 'select') sc.origin = sc.origin || o; place(p); });
-  map.on('mousedown', e => { if (tool !== 'select') return; const p = U.ll2w(origin(), e.latlng); sel = pick(p); if (sel) { drag = p; map.dragging.disable(); } inspect(); draw(); });
-  map.on('mousemove', e => { if (!drag) return; const p = U.ll2w(origin(), e.latlng); mv(sel.o, p.x - drag.x, p.y - drag.y); drag = p; draw(); });
-  map.on('mouseup', () => { drag = null; map.dragging.enable(); });
-  map.on('move zoom resize', draw);
+  Camera.attach(cv, view, { limits: [0.2, 60], draw,
+    grab: p => { if (tool !== 'select') return null; sel = pick(p); inspect(); draw(); return sel && ((dx, dy) => { mv(sel.o, dx, dy); draw(); }); },
+    tap: p => { if (tool !== 'select') { sc.origin = sc.origin || home; place(p); } } });
+  addEventListener('resize', draw);
   addEventListener('keydown', e => {
     if (/INPUT|SELECT/.test(e.target.tagName)) return;
     if (e.key === 'Delete' || e.key === 'Backspace') del(); else if (e.key === 'Enter' && tool === 'keepout') finish(); else if (e.key === 'Escape') setTool('select');
@@ -76,12 +75,16 @@
   document.querySelectorAll('nav button').forEach(b => b.onclick = () => { document.querySelectorAll('.tab').forEach(t => t.hidden = t.id !== b.dataset.tab); document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b)); });
 
   // Location: search (OpenStreetMap Nominatim) or device geolocation. Pick the place BEFORE placing objects; the first object fixes the scenario origin.
-  $('go').onclick = async () => { const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent($('q').value))).json(); if (r[0]) map.setView([+r[0].lat, +r[0].lon], 17); else alert('No match found.'); };
-  $('loc').onclick = () => navigator.geolocation.getCurrentPosition(p => map.setView([p.coords.latitude, p.coords.longitude], 17), () => alert('Location unavailable.'));
+  $('go').onclick = async () => { const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent($('q').value))).json(); if (r[0]) goTo(+r[0].lat, +r[0].lon); else alert('No match found.'); };
+  $('loc').onclick = () => navigator.geolocation.getCurrentPosition(p => goTo(p.coords.latitude, p.coords.longitude), () => alert('Location unavailable.'));
 
   // Files
   const slug = () => sc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'scenario';
-  const adopt = o => { sc = U.fill(o); sel = null; draft = []; syncUI(); inspect(); if (sc.origin) map.setView(U.w2ll(sc.origin, sc.start || { x: 0, y: 0 }), 18); draw(); };
+  const adopt = o => {
+    const ll = U.w2ll(origin(), { x: view.cx, y: view.cy }); sc = U.fill(o); sel = null; draft = []; syncUI(); inspect();
+    if (sc.origin) { const f = sc.start || { x: 0, y: 0 }; view.cx = f.x; view.cy = f.y; } else { home = { lat: ll.lat, lon: ll.lng }; view.cx = view.cy = 0; }
+    draw();
+  };
   const published = async () => { try { return await U.json('scenarios/index.json'); } catch { return { scenarios: [] }; } };
   (await published()).scenarios.forEach(s => $('pub').add(new Option(s.name, s.file)));
   $('pub').onchange = async e => { if (e.target.value) adopt(await U.json('scenarios/' + e.target.value)); };
@@ -103,5 +106,7 @@
   $('ldc').onclick = () => $('cfile').click();
   $('cfile').onchange = e => { const f = e.target.files[0]; if (f) f.text().then(t => { cfg = JSON.parse(t); renderForm(); draw(); }); e.target.value = ''; };
 
+  const setBase = n => { base[layer].remove(); layer = n; base[n].addTo(map); $('attr').textContent = ATTR[n]; };
+  $('base').onchange = e => setBase(e.target.value); $('north').onclick = () => { view.rot = 0; draw(); }; $('attr').textContent = ATTR.Map;
   renderForm(); syncUI(); inspect(); setTool('select'); map.invalidateSize(); draw();
 })().catch(e => alert('Could not start: ' + e.message));

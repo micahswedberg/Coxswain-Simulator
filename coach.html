@@ -9,6 +9,7 @@
   <div id="t-scn" class="tab">
     <label>Name <input id="nm"></label>
     <div class="line"><input id="q" placeholder="Find a lake, river or address"><button id="go">Find</button><button id="loc">My location</button></div>
+    <label>Basemap <select id="base"><option>Map</option><option>Satellite</option></select><button id="north">North up</button></label>
     <h4>Place on the map</h4>
     <div class="tools">
       <button data-tool="select" class="on">Select</button><button data-tool="start">Start</button><button data-tool="dock">Dock</button><button data-tool="buoy">Buoy</button>
@@ -31,7 +32,7 @@
     <input id="cfile" type="file" accept=".json" hidden>
   </div>
 </aside>
-<main><div id="map"></div><canvas id="cv"></canvas></main>
+<main><div id="map"></div><canvas id="cv"></canvas><div id="attr"></div></main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/util.js"></script><script src="js/physics.js"></script><script src="js/world.js"></script><script src="js/render.js"></script><script src="js/coach.js"></script>
+<script src="js/util.js"></script><script src="js/physics.js"></script><script src="js/world.js"></script><script src="js/render.js"></script><script src="js/camera.js"></script><script src="js/coach.js"></script>
 </body></html>

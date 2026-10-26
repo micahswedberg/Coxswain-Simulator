@@ -7,7 +7,7 @@
   "stake": { "maxFwd": 0.5, "maxLat": 0.3, "maxAngle": 15, "buffer": 1.0 },
   "physics": {
     "strokeSeconds": 4, "forceRow": 300, "forceBack": 200, "holdDragLinear": 300, "holdDragRot": 4000, "lightCheckMult": 0.15,
-    "waterDragLinear": 200, "waterDragRot": 8000, "waterDragLat": 3000, "rudderArea": 0.00193548, "rudderMaxCopX": 0.0254,
+    "waterDragLinear": 200, "waterDragLat": 3000, "yawDampScale": 1.0, "yawInertiaScale": 1.5, "rudderArea": 0.02, "rudderMaxCopX": 0.0254,
     "waterDensity": 1000, "windTorque": 1.8, "oarOffsetX": 1.2
   }
 }
