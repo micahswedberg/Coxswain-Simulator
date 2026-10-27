@@ -12,7 +12,7 @@ const Physics = (() => {
     const com = mom / mass, h = start.heading || 0;
     seats.forEach(q => q.yOff = q.y - com);   // oar position relative to centre of mass
     return { type, spec: s, seats, mass, com, moi: cfg.physics.yawInertiaScale * (s.hullMass * ((s.length ** 2 + s.width ** 2) / 12 + com ** 2) + s.coxMass * (s.coxY - com) ** 2 + seats.reduce((a, q) => a + s.rowerMass * q.yOff ** 2, 0)),   // yaw inertia from the actual mass layout, x scale for water carried along
-      rudderY: -(s.length / 2 - 0.75) - com,
+      rudderY: -(s.length / 2 - 0.75) - com, power: 1,   // power: fraction of full oar force for Row and Back (set from config.power)
       state: { x: start.x + Math.sin(h) * com, y: start.y - Math.cos(h) * com, vx: 0, vy: 0, heading: h, w: 0, rudder: 0 } };
   }
   const center = b => ({ x: b.state.x - Math.sin(b.state.heading) * b.com, y: b.state.y + Math.cos(b.state.heading) * b.com });
@@ -24,8 +24,8 @@ const Physics = (() => {
     let fF = 0, fL = 0, T = 0;
     for (const q of b.seats) {                                   // oars
       let f = 0;
-      if (q.action === 'row') f = P.forceRow;
-      else if (q.action === 'back') f = -P.forceBack;
+      if (q.action === 'row') f = P.forceRow * b.power;
+      else if (q.action === 'back') f = -P.forceBack * b.power;
       else if (q.action === 'hold' || q.action === 'check') {    // hold = original "check" drag; light check = scaled
         const m = q.action === 'hold' ? 1 : P.lightCheckMult;
         f = -P.holdDragLinear * m * (vF + st.w * q.xOff);

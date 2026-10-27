@@ -40,6 +40,7 @@ Scenario angles are degrees. Wind direction is the direction the wind blows towa
 - One finger or left mouse drags the map. Two fingers pinch to zoom and twist to rotate. The wheel zooms. Shift-drag or right-drag rotates with a mouse. **N** turns the map north-up; **◎** (coxswain view) re-centers on the boat after you have panned away.
 - Coach view: with the Select tool, dragging an object moves it and dragging empty map pans.
 - Seat buttons cycle Sit easy, Row, Back, Hold, Light check. The Bow pair, All seats and Stern pair buttons cycle their seats through the same list, one group at a time: tapping a different group first sets every seat to Sit easy and resets the other group buttons, then starts the new group at Row. **Weigh enough** sets every seat to Sit easy.
+- Power (Full, Half, Paddle) sets how hard the rowing seats pull: 100%, 50% and 10% of full oar force, editable under `power` in `config.json`. It applies to Row and Back; Hold and Light check are not affected.
 
 ## Physics notes
 

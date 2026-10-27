@@ -5,7 +5,7 @@
   const map = L.map('map', { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, zoomSnap: 0, maxZoom: 23 });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 23, attribution: '© OpenStreetMap' }).addTo(map);
   const ACT = { easy: 'Sit easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Light check' }, ORDER = Object.keys(ACT);
-  let sc, boat, env, type = '8+', busy = false, done = false, follow = true;
+  let sc, boat, env, type = '8+', busy = false, done = false, follow = true, powerKey = 'full';
   const view = { cx: 0, cy: 0, scale: 6, rot: 0 }, gi = { all: 0, bow: 0, stern: 0 };
   let active = null;                       // the group button last used; only one group is active at a time
 
@@ -29,7 +29,7 @@
   const clearGroups = () => { Object.keys(gi).forEach(k => gi[k] = 0); active = null; };
   function reset() {
     const s = sc.start || { x: 0, y: 0, heading: 0 };
-    boat = Physics.create(cfg, type, { x: s.x, y: s.y, heading: s.heading * U.D }); env = U.env(sc); busy = done = false;
+    boat = Physics.create(cfg, type, { x: s.x, y: s.y, heading: s.heading * U.D }); boat.power = cfg.power[powerKey]; env = U.env(sc); busy = done = false;
     $('modal').hidden = true; $('rud').value = 0; $('rv').textContent = 'Center'; clearGroups(); follow = true; seatsUI(); groupsUI(); draw();
   }
   async function load(file) { sc = U.fill(await U.json('scenarios/' + file)); reset(); }
@@ -57,6 +57,7 @@
     boat.seats.filter(q => GROUPS[g][1](q, boat.seats.length)).forEach(q => q.action = ORDER[gi[g]]); seatsUI(); groupsUI(); draw();
   });
   $('wenough').onclick = () => { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); seatsUI(); groupsUI(); draw(); };   // "Weigh enough": everyone sits easy
+  document.querySelectorAll('#power button').forEach(b => b.onclick = () => { powerKey = b.dataset.p; boat.power = cfg.power[powerKey]; document.querySelectorAll('#power button').forEach(x => x.classList.toggle('on', x === b)); });
   $('rud').oninput = e => { const v = +e.target.value; boat.state.rudder = v; $('rv').textContent = v ? Math.abs(v) + '° ' + (v > 0 ? 'right' : 'left') : 'Center'; };
   $('go').onclick = stroke; $('reset').onclick = reset; $('m-retry').onclick = reset; $('m-close').onclick = () => $('modal').hidden = true;
   const zoom = f => { view.scale = Math.min(40, Math.max(1, view.scale * f)); draw(); };
