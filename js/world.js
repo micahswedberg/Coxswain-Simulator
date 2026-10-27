@@ -27,7 +27,7 @@ const World = (() => {
       const mid = P.filter(p => Math.abs(p.i) <= 0.5).length;
       for (const p of P) {
         const l = toLocal(p, d, d.angle), ex = Math.max(Math.abs(l.x) - hw, 0), ey = Math.max(Math.abs(l.y) - hh, 0), dist = Math.hypot(ex, ey);
-        if (dist < R) { if (Math.abs(p.i) <= 0.75 && ey === 0) side = true; else end = Math.abs(p.i) > 0.75 ? 'Bow or stern struck the dock.' : 'You hit the end of the dock.'; }
+        if (dist < R) { if (ey === 0) side = true; else end = 'You hit the end of the dock.'; }   // any part of the hull touching the long side counts, bow included
         if (Math.abs(p.i) <= 0.5 && ey === 0 && dist < R + C.buffer) near++;
       }
       if (side) return ok ? res('Win', 'Parked alongside the dock.', C, ang) : res('Failure', why(C, ang), C, ang);   // long side touched
@@ -35,7 +35,8 @@ const World = (() => {
       if (near === mid && ok) return res('Win', 'Parked alongside the dock.', C, ang);   // buffer-zone win
     }
     for (const st of sc.stakeboats) {                             // stern-first stakeboat start
-      const C = cfg.stake, ang = a360(hd, st.angle), ok = !fast(C) && !bad(C, ang), S = P[0];
+      const C = cfg.stake, S = P[0], onFront = (S.x - st.x) * Math.sin(st.angle * D) - (S.y - st.y) * Math.cos(st.angle * D) >= 0;
+      const ang = a360(hd, st.angle + (onFront ? 0 : 180)), ok = !fast(C) && !bad(C, ang);   // approached from either side: the boat must point away from the line on its own side
       for (const q of lanes(st)) {
         const dd = Math.hypot(S.x - q.x, S.y - q.y);
         if (dd < 0.5) return ok ? res('Win', 'Stern is on the stakeboat.', C, ang) : res('Failure', why(C, ang), C, ang);
