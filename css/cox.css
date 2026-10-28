@@ -6,6 +6,11 @@ header select{flex:1;min-width:0}
 #stage{position:relative;flex:1;min-height:120px}
 #zoom{position:absolute;right:10px;bottom:10px;z-index:5;display:grid;grid-template-columns:44px 44px;gap:6px}
 #zoom button{width:44px;background:rgba(18,56,70,.9)}
+#windbtn{position:absolute;top:4px;right:4px;width:84px;height:112px;z-index:6;background:transparent;padding:0;border-radius:12px}
+#windpanel{position:absolute;top:8px;left:8px;right:96px;z-index:7;max-height:calc(100% - 16px);overflow:auto;background:var(--pn);border-radius:14px;border-top:4px solid var(--ac);padding:10px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+#windpanel[hidden]{display:none}#windpanel h3{margin:0 0 6px;font-size:1rem}
+.wrow{display:flex;gap:10px;align-items:center}.wrow label{display:block}#wsp{width:84px}
+#wdr{width:100%;padding:0;margin:8px 0}#windpanel .primary{width:100%;min-height:40px}
 #panel{background:var(--pn);padding:10px;max-height:56%;overflow:auto;border-top:3px solid var(--ac)}
 #panel label{display:block}#panel input[type=range]{width:100%;margin:4px 0 8px;padding:0}
 #seats{display:grid;grid-template-columns:1fr 1fr;gap:6px}

@@ -5,7 +5,7 @@
   const map = L.map('map', { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, zoomSnap: 0, maxZoom: 23 });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 23, attribution: '© OpenStreetMap' }).addTo(map);
   const ACT = { easy: 'Sit easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Light check' }, ORDER = Object.keys(ACT);
-  let sc, boat, env, type = '8+', busy = false, done = false, follow = true, powerKey = 'full', boatUp = false;   // boatUp: map rotates so the bow always points to the top of the screen
+  let sc, boat, env, type = '8+', busy = false, done = false, follow = true, powerKey = 'full', boatUp = false, wind;   // wind: the coxswain's working copy; the scenario's own wind is never changed   // boatUp: map rotates so the bow always points to the top of the screen
   const view = { cx: 0, cy: 0, scale: 6, rot: 0 }, gi = { all: 0, bow: 0, stern: 0 };
   let active = null;                       // the group button last used; only one group is active at a time
 
@@ -13,7 +13,7 @@
     if (boatUp) view.rot = -boat.state.heading;
     if (follow) { const c = Physics.center(boat); view.cx = c.x; view.cy = c.y; }
     Camera.syncMap(map, $('map'), view, sc.origin);
-    Render.fit(cv); Render.draw(cv, view, sc, { boat });
+    Render.fit(cv); Render.draw(cv, view, { ...sc, wind }, { boat });
     $('spd').textContent = Math.hypot(boat.state.vx, boat.state.vy).toFixed(1) + ' m/s';
   }
   function seatsUI() {
@@ -28,9 +28,11 @@
   const GROUPS = { bow: ['Bow pair', q => q.id <= 2], all: ['All seats', () => true], stern: ['Stern pair', (q, n) => q.id > n - 2] };
   const groupsUI = () => document.querySelectorAll('#presets button[data-g]').forEach(b => b.textContent = GROUPS[b.dataset.g][0] + '\n' + ACT[ORDER[gi[b.dataset.g]]]);
   const clearGroups = () => { Object.keys(gi).forEach(k => gi[k] = 0); active = null; };
+  const CARD = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], WIND_MAX = 25;
+  const windUI = () => { $('wsp').value = wind.mph; $('wdr').value = wind.dirDeg; $('wdv').textContent = wind.dirDeg + '° ' + CARD[Math.round(wind.dirDeg / 45) % 8]; $('warrow').setAttribute('transform', `rotate(${wind.dirDeg})`); };
   function reset() {
     const s = sc.start || { x: 0, y: 0, heading: 0 };
-    boat = Physics.create(cfg, type, { x: s.x, y: s.y, heading: s.heading * U.D }); boat.power = cfg.power[powerKey]; env = U.env(sc); busy = done = false;
+    boat = Physics.create(cfg, type, { x: s.x, y: s.y, heading: s.heading * U.D }); boat.power = cfg.power[powerKey]; wind = { ...sc.wind }; env = U.env({ wind }); windUI(); $('windpanel').hidden = true; busy = done = false;   // Reset puts the wind back to the scenario default
     $('modal').hidden = true; $('rud').value = 0; $('rv').textContent = 'Center'; clearGroups(); follow = true; seatsUI(); groupsUI(); draw();
   }
   async function load(file) { sc = U.fill(await U.json('scenarios/' + file)); reset(); }
@@ -59,6 +61,11 @@
   });
   $('wenough').onclick = () => { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); seatsUI(); groupsUI(); draw(); };   // "Weigh enough": everyone sits easy
   document.querySelectorAll('#power button').forEach(b => b.onclick = () => { powerKey = b.dataset.p; boat.power = cfg.power[powerKey]; document.querySelectorAll('#power button').forEach(x => x.classList.toggle('on', x === b)); });
+  $('windbtn').onclick = () => { $('windpanel').hidden = !$('windpanel').hidden; };
+  $('wdone').onclick = () => { $('windpanel').hidden = true; };
+  $('wsp').oninput = e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { wind.mph = Math.round(Math.min(WIND_MAX, Math.max(0, v)) * 10) / 10; env = U.env({ wind }); draw(); } };
+  $('wsp').onchange = windUI;   // snaps the box back into 0-25 once typing is done
+  $('wdr').oninput = e => { wind.dirDeg = +e.target.value; env = U.env({ wind }); windUI(); draw(); };
   $('rud').oninput = e => { const v = +e.target.value; boat.state.rudder = v; $('rv').textContent = v ? Math.abs(v) + '° ' + (v > 0 ? 'right' : 'left') : 'Center'; };
   $('go').onclick = stroke; $('reset').onclick = reset; $('m-retry').onclick = reset; $('m-close').onclick = () => $('modal').hidden = true;
   const zoom = f => { view.scale = Math.min(40, Math.max(1, view.scale * f)); draw(); };

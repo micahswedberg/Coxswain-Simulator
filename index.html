@@ -10,6 +10,16 @@
   <b id="spd">0.0 m/s</b></header>
 <main id="stage"><div id="map"></div><canvas id="cv"></canvas>
   <div id="attr">© OpenStreetMap contributors</div>
+  <button id="windbtn" aria-label="Wind settings"></button>
+  <div id="windpanel" hidden>
+    <h3>Wind</h3>
+    <div class="wrow">
+      <svg viewBox="-32 -32 64 64" width="72" height="72" aria-hidden="true"><circle r="30" fill="#0b2530" stroke="#25596e"/><text y="-20" text-anchor="middle" font-size="9" fill="#ff7a1a">N</text><g id="warrow" stroke="#e6f4f1" fill="#e6f4f1" stroke-width="2.5"><line x1="0" y1="14" x2="0" y2="-12"/><path d="M0 -22 L-7 -10 L7 -10 Z"/></g></svg>
+      <div><label>Speed (mph) <input id="wsp" type="number" min="0" max="25" step="1" inputmode="decimal"></label><div>Blowing toward <b id="wdv"></b></div></div>
+    </div>
+    <input id="wdr" type="range" min="0" max="359" step="1" aria-label="Wind direction">
+    <button id="wdone" class="primary">Done</button>
+  </div>
   <div id="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="north" aria-label="Face north">N</button><button id="fol" aria-label="Follow boat">◎</button></div></main>
 <section id="panel">
   <label>Rudder: <b id="rv">Center</b><input id="rud" type="range" min="-45" max="45" value="0"></label>
