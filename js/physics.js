@@ -42,7 +42,7 @@ const Physics = (() => {
     const wx = Math.sin(env.windDir) * env.windSpeed, wy = -Math.cos(env.windDir) * env.windSpeed;   // wind
     const wF = wx * hs - wy * hc, wL = wx * hc + wy * hs;
     fF += Math.sign(wF) * wF * wF * 2; fL += Math.sign(wL) * wL * wL * 20; T += Math.sign(wL) * wL * wL * P.windTorque;
-    fF -= vF * P.waterDragLinear * k; fL -= vL * P.waterDragLat * k; T -= st.w * P.waterDragLat * k * (b.spec.length ** 2 / 12) * P.yawDampScale;   // hydrodynamic drag; yaw damping = the same lateral drag acting along the whole hull length
+    fF -= (vF * P.waterDragLinear + Math.sign(vF) * vF * vF * P.waterDragQuad) * k; fL -= vL * P.waterDragLat * k; T -= st.w * P.waterDragLat * k * (b.spec.length ** 2 / 12) * P.yawDampScale;   // hydrodynamic drag; yaw damping = the same lateral drag acting along the whole hull length
     st.vx += (fF * hs + fL * hc) / b.mass * dt; st.vy += (-fF * hc + fL * hs) / b.mass * dt; st.w += T / b.moi * dt;
     st.x += st.vx * dt; st.y += st.vy * dt; st.heading += st.w * dt;
     return { vF, vL };

@@ -44,5 +44,7 @@ Scenario angles are degrees. Wind direction is the direction the wind blows towa
 
 ## Physics notes
 
+- Hull drag along the boat is linear plus quadratic (`waterDragLinear`, `waterDragQuad`). The quadratic term is calibrated so an 8+ with every seat rowing at full power levels off at 2000 m / 7:00 = 4.76 m/s; the linear term keeps low-speed maneuvering as it was. The 4+ `dragScale` is set so a 4+ tops out around 90% of that.
+
 - Yaw inertia is computed from the actual mass layout (hull, rowers, cox about the centre of mass) times `yawInertiaScale`, which stands in for the water the hull carries along.
 - Yaw damping comes from the same lateral drag (`waterDragLat`) acting along the whole hull length, scaled by `yawDampScale`. A single bow-seat stroke's yaw is nearly gone about a second after the stroke ends.
