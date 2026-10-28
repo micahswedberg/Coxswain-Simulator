@@ -8,7 +8,7 @@
   "power": { "full": 1.0, "half": 0.5, "paddle": 0.1 },
   "physics": {
     "strokeSeconds": 4, "forceRow": 300, "forceBack": 200, "holdDragLinear": 300, "holdDragRot": 4000, "lightCheckMult": 0.15,
-    "waterDragLinear": 200, "waterDragQuad": 63.8, "waterDragLat": 3000, "yawDampScale": 0.15, "yawInertiaScale": 1.0, "rudderArea": 0.025, "rudderMaxCopX": 0.0254,
+    "waterDragLinear": 200, "waterDragQuad": 63.8, "waterDragLat": 3000, "yawDampScale": 0.15, "yawInertiaScale": 1.0, "rudderArea": 0.0061, "rudderMaxCopX": 0.0254,
     "waterDensity": 1000, "windTorque": 1.8, "oarOffsetX": 1.2
   }
 }
