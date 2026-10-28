@@ -5,11 +5,12 @@
   const map = L.map('map', { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, zoomAnimation: false, fadeAnimation: false, zoomSnap: 0, maxZoom: 23 });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 23, attribution: '© OpenStreetMap' }).addTo(map);
   const ACT = { easy: 'Sit easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Light check' }, ORDER = Object.keys(ACT);
-  let sc, boat, env, type = '8+', busy = false, done = false, follow = true, powerKey = 'full';
+  let sc, boat, env, type = '8+', busy = false, done = false, follow = true, powerKey = 'full', boatUp = false;   // boatUp: map rotates so the bow always points to the top of the screen
   const view = { cx: 0, cy: 0, scale: 6, rot: 0 }, gi = { all: 0, bow: 0, stern: 0 };
   let active = null;                       // the group button last used; only one group is active at a time
 
   function draw() {
+    if (boatUp) view.rot = -boat.state.heading;
     if (follow) { const c = Physics.center(boat); view.cx = c.x; view.cy = c.y; }
     Camera.syncMap(map, $('map'), view, sc.origin);
     Render.fit(cv); Render.draw(cv, view, sc, { boat });
@@ -62,8 +63,11 @@
   $('go').onclick = stroke; $('reset').onclick = reset; $('m-retry').onclick = reset; $('m-close').onclick = () => $('modal').hidden = true;
   const zoom = f => { view.scale = Math.min(40, Math.max(1, view.scale * f)); draw(); };
   $('zin').onclick = () => zoom(1.3); $('zout').onclick = () => zoom(1 / 1.3);
-  $('north').onclick = () => { view.rot = 0; draw(); }; $('fol').onclick = () => { follow = true; draw(); };
-  Camera.attach(cv, view, { limits: [1, 40], change: k => { if (k === 'pan') follow = false; }, draw: () => boat && draw() });
+  $('north').onclick = () => {   // N = north up (free to rotate), B = bow up (locked to the boat's heading)
+    boatUp = !boatUp; $('north').textContent = boatUp ? 'B' : 'N'; $('north').setAttribute('aria-label', boatUp ? 'Bow up' : 'North up');
+    if (boatUp) follow = true; else view.rot = 0; draw();
+  }; $('fol').onclick = () => { follow = true; draw(); };
+  Camera.attach(cv, view, { lockRot: () => boatUp, limits: [1, 40], change: k => { if (k === 'pan') follow = false; }, draw: () => boat && draw() });
   addEventListener('resize', () => { map.invalidateSize(); if (boat) draw(); });
   const want = new URLSearchParams(location.search).get('s') || idx.scenarios[0].file;
   $('scn').value = want; await load(want);

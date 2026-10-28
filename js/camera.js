@@ -10,7 +10,7 @@ const Camera = {
     if (el._D !== D) { el._D = D; map.invalidateSize(false); }
     map.setView(U.w2ll(base, { x: v.cx, y: v.cy }), U.zoomFor(base.lat, v.scale), { animate: false });
   },
-  // Handlers h: { limits:[min,max], grab(world,e)->dragFn(dxWorld,dyWorld)|null, tap(world,e), change(kind), draw() }
+  // Handlers h: { lockRot()->bool (true ignores rotate gestures), limits:[min,max], grab(world,e)->dragFn(dxWorld,dyWorld)|null, tap(world,e), change(kind), draw() }
   // One finger / left mouse: drag object (if grab returns one) else pan. Two fingers: pinch zoom + twist rotate. Wheel: zoom. Shift-drag or right-drag: rotate.
   attach(el, v, h = {}) {
     const P = new Map(), lim = h.limits || [0.1, 60]; let g = null;
@@ -29,12 +29,12 @@ const Camera = {
       const old = P.get(e.pointerId); if (!old) return; const s = rel(e);
       if (P.size === 1) {
         g.moved += Math.hypot(s.x - old.x, s.y - old.y);
-        if (g.rotate) { v.rot += (s.x - old.x) * 0.01; change('rot'); }
+        if (g.rotate) { if (!(h.lockRot && h.lockRot())) { v.rot += (s.x - old.x) * 0.01; change('rot'); } }
         else if (g.drag) { const a = w(old), b = w(s); g.drag(b.x - a.x, b.y - a.y); }
         else if (g.moved > 3) { Camera.anchor(v, el, w(old), s.x, s.y); change('pan'); }
       } else if (P.size === 2) {
         const ids = [...P.keys()], o = ids.map(i => P.get(i)); P.set(e.pointerId, s); const n = ids.map(i => P.get(i)), a = w(mid(o)), m = mid(n);
-        if (dist(o) > 0) { v.scale = clamp(v.scale * dist(n) / dist(o)); v.rot += ang(n) - ang(o); }
+        if (dist(o) > 0) { v.scale = clamp(v.scale * dist(n) / dist(o)); if (!(h.lockRot && h.lockRot())) v.rot += ang(n) - ang(o); }
         Camera.anchor(v, el, a, m.x, m.y); change('pinch');
       }
       P.set(e.pointerId, s); redraw();
