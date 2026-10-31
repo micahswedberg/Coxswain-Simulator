@@ -22,10 +22,11 @@ const Physics = (() => {
     const hc = Math.cos(st.heading), hs = Math.sin(st.heading);
     const vF = st.vx * hs - st.vy * hc, vL = st.vx * hc + st.vy * hs;
     let fF = 0, fL = 0, T = 0;
+    const backMult = b.seats.some(q => q.action === 'back') ? P.backingPowerMultiplier : 1;   // while anyone is backing, all oar force is scaled
     for (const q of b.seats) {                                   // oars
       let f = 0;
-      if (q.action === 'row') f = P.forceRow * b.power;
-      else if (q.action === 'back') f = -P.forceBack * b.power;
+      if (q.action === 'row') f = P.forceRow * b.power * backMult;
+      else if (q.action === 'back') f = -P.forceBack * b.power * backMult;
       else if (q.action === 'hold' || q.action === 'check') {    // hold = original "check" drag; light check = scaled
         const m = q.action === 'hold' ? 1 : P.lightCheckMult;
         f = -P.holdDragLinear * m * (vF + st.w * q.xOff);

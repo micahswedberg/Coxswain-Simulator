@@ -6,7 +6,7 @@
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 23, attribution: '© OpenStreetMap' }).addTo(map);
   const ACT = { easy: 'Sit easy', row: 'Row', back: 'Back', hold: 'Hold', check: 'Light check' }, ORDER = Object.keys(ACT);
   let sc, boat, env, type = '8+', busy = false, done = false, follow = true, powerKey = 'full', boatUp = false, wind;   // wind: the coxswain's working copy; the scenario's own wind is never changed   // boatUp: map rotates so the bow always points to the top of the screen
-  const view = { cx: 0, cy: 0, scale: 6, rot: 0 }, gi = { all: 0, bow: 0, stern: 0 };
+  const view = { cx: 0, cy: 0, scale: 6, rot: 0 }, gi = { all: 0, bow: 0, stern: 0, port: 0, stbd: 0 };
   let active = null;                       // the group button last used; only one group is active at a time
 
   function draw() {
@@ -17,7 +17,13 @@
     $('spd').textContent = Math.hypot(boat.state.vx, boat.state.vy).toFixed(1) + ' m/s';
   }
   function seatsUI() {
-    const box = $('seats'); box.innerHTML = '<i>Port</i><i>Starboard</i>';
+    const box = $('seats'); box.innerHTML = '';
+    for (const [g, name] of [['port', 'Port'], ['stbd', 'Starboard']]) {   // the side headings are buttons too: tap to cycle that whole side
+      const h = document.createElement('i'); h.setAttribute('role', 'button'); h.tabIndex = 0;
+      h.textContent = gi[g] > 0 ? `${name}: ${ACT[ORDER[gi[g]]]}` : `${name} \u2193`;
+      h.onclick = () => groupTap(g); h.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); groupTap(g); } };
+      box.append(h);
+    }
     for (let p = 0; p < boat.seats.length / 2; p++) for (const id of [2 * p + 2, 2 * p + 1]) {
       const q = boat.seats[id - 1], b = document.createElement('button');
       b.className = 'seat a-' + q.action; b.textContent = `${id}  ${ACT[q.action]}`;
@@ -25,7 +31,7 @@
       box.append(b);
     }
   }
-  const GROUPS = { bow: ['Bow pair', q => q.id <= 2], all: ['All seats', () => true], stern: ['Stern pair', (q, n) => q.id > n - 2] };
+  const GROUPS = { bow: ['Bow pair', q => q.id <= 2], all: ['All seats', () => true], stern: ['Stern pair', (q, n) => q.id > n - 2], port: ['Port', q => q.side === 'Port'], stbd: ['Starboard', q => q.side === 'Starboard'] };
   const groupsUI = () => document.querySelectorAll('#presets button[data-g]').forEach(b => b.textContent = GROUPS[b.dataset.g][0] + '\n' + ACT[ORDER[gi[b.dataset.g]]]);
   const clearGroups = () => { Object.keys(gi).forEach(k => gi[k] = 0); active = null; };
   const CARD = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], WIND_MAX = 25;
@@ -53,12 +59,14 @@
   idx.scenarios.forEach(s => $('scn').add(new Option(s.name, s.file)));
   $('scn').onchange = e => load(e.target.value);
   document.querySelectorAll('#boatsel button').forEach(b => b.onclick = () => { type = b.dataset.t; document.querySelectorAll('#boatsel button').forEach(x => x.classList.toggle('on', x === b)); reset(); });
-  document.querySelectorAll('#presets button[data-g]').forEach(b => b.onclick = () => {
-    const g = b.dataset.g;
-    if (active !== g) { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); active = g; }   // switching groups: every seat sits easy, other buttons reset, new group starts at Row
+  const isSide = k => k === 'port' || k === 'stbd';
+  function groupTap(g) {   // one group is active at a time, except that Port and Starboard can be set independently of each other
+    if (active !== g && !(isSide(g) && isSide(active))) { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); }   // switching groups: every seat sits easy and the other buttons reset
+    active = g;
     gi[g] = (gi[g] + 1) % ORDER.length;
     boat.seats.filter(q => GROUPS[g][1](q, boat.seats.length)).forEach(q => q.action = ORDER[gi[g]]); seatsUI(); groupsUI(); draw();
-  });
+  }
+  document.querySelectorAll('#presets button[data-g]').forEach(b => b.onclick = () => groupTap(b.dataset.g));
   $('wenough').onclick = () => { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); seatsUI(); groupsUI(); draw(); };   // "Weigh enough": everyone sits easy
   document.querySelectorAll('#power button').forEach(b => b.onclick = () => { powerKey = b.dataset.p; boat.power = cfg.power[powerKey]; document.querySelectorAll('#power button').forEach(x => x.classList.toggle('on', x === b)); });
   $('windbtn').onclick = () => { $('windpanel').hidden = !$('windpanel').hidden; };
