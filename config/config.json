@@ -7,8 +7,8 @@
   "stake": { "maxFwd": 0.5, "maxLat": 0.3, "maxAngle": 15, "buffer": 1.0 },
   "power": { "full": 1.0, "half": 0.5, "paddle": 0.1 },
   "physics": {
-    "strokeSeconds": 4, "forceRow": 300, "forceBack": 300, "holdDragLinear": 100, "holdDragRot": 500, "lightCheckMult": 0.15,
-    "waterDragLinear": 100, "waterDragQuad": 63.8, "waterDragLat": 3000, "yawDampScale": 0.15, "yawInertiaScale": 1.0, "rudderArea": 0.004, "rudderMaxCopX": 0.0254,
+    "strokeSeconds": 4, "forceRow": 300, "forceBack": 200, "backingPowerMultiplier": 0.7, "holdDragLinear": 300, "holdDragRot": 4000, "lightCheckMult": 0.15,
+    "waterDragLinear": 200, "waterDragQuad": 63.8, "waterDragLat": 3000, "yawDampScale": 0.15, "yawInertiaScale": 1.0, "rudderArea": 0.0061, "rudderMaxCopX": 0.0254,
     "waterDensity": 1000, "windTorque": 1.8, "oarOffsetX": 1.2
   }
 }
