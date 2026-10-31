@@ -16,6 +16,12 @@
     Render.fit(cv); Render.draw(cv, view, { ...sc, wind }, { boat });
     $('spd').textContent = Math.hypot(boat.state.vx, boat.state.vy).toFixed(1) + ' m/s';
   }
+  function syncPower() {   // any seat backing: Full is unavailable and the setting drops to Half; once nobody is backing Full can be chosen again
+    const backing = boat.seats.some(q => q.action === 'back');
+    if (backing && powerKey === 'full') powerKey = 'half';
+    boat.power = cfg.power[powerKey];
+    document.querySelectorAll('#power button').forEach(x => { x.classList.toggle('on', x.dataset.p === powerKey); if (x.dataset.p === 'full') x.disabled = backing; });
+  }
   function seatsUI() {
     const box = $('seats'); box.innerHTML = '<i>Port</i><i>Starboard</i>';
     for (let p = 0; p < boat.seats.length / 2; p++) for (const id of [2 * p + 2, 2 * p + 1]) {
@@ -24,6 +30,7 @@
       b.onclick = () => { q.action = ORDER[(ORDER.indexOf(q.action) + 1) % ORDER.length]; seatsUI(); draw(); };
       box.append(b);
     }
+    syncPower();
   }
   const GROUPS = { bow: ['Bow pair', q => q.id <= 2], all: ['All seats', () => true], stern: ['Stern pair', (q, n) => q.id > n - 2] };
   const groupsUI = () => document.querySelectorAll('#presets button[data-g]').forEach(b => b.textContent = GROUPS[b.dataset.g][0] + '\n' + ACT[ORDER[gi[b.dataset.g]]]);
@@ -60,7 +67,7 @@
     boat.seats.filter(q => GROUPS[g][1](q, boat.seats.length)).forEach(q => q.action = ORDER[gi[g]]); seatsUI(); groupsUI(); draw();
   });
   $('wenough').onclick = () => { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); seatsUI(); groupsUI(); draw(); };   // "Weigh enough": everyone sits easy
-  document.querySelectorAll('#power button').forEach(b => b.onclick = () => { powerKey = b.dataset.p; boat.power = cfg.power[powerKey]; document.querySelectorAll('#power button').forEach(x => x.classList.toggle('on', x === b)); });
+  document.querySelectorAll('#power button').forEach(b => b.onclick = () => { powerKey = b.dataset.p; syncPower(); });
   $('windbtn').onclick = () => { $('windpanel').hidden = !$('windpanel').hidden; };
   $('wdone').onclick = () => { $('windpanel').hidden = true; };
   $('wsp').oninput = e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { wind.mph = Math.round(Math.min(WIND_MAX, Math.max(0, v)) * 10) / 10; env = U.env({ wind }); draw(); } };
