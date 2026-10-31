@@ -20,7 +20,7 @@
     const box = $('seats'); box.innerHTML = '';
     for (const [g, name] of [['port', 'Port'], ['stbd', 'Starboard']]) {   // the side headings are buttons too: tap to cycle that whole side
       const h = document.createElement('i'); h.setAttribute('role', 'button'); h.tabIndex = 0;
-      h.textContent = active === g ? `${name}: ${ACT[ORDER[gi[g]]]}` : `${name} \u27F3`;
+      h.textContent = gi[g] > 0 ? `${name}: ${ACT[ORDER[gi[g]]]}` : `${name} \u2193`;
       h.onclick = () => groupTap(g); h.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); groupTap(g); } };
       box.append(h);
     }
@@ -59,8 +59,10 @@
   idx.scenarios.forEach(s => $('scn').add(new Option(s.name, s.file)));
   $('scn').onchange = e => load(e.target.value);
   document.querySelectorAll('#boatsel button').forEach(b => b.onclick = () => { type = b.dataset.t; document.querySelectorAll('#boatsel button').forEach(x => x.classList.toggle('on', x === b)); reset(); });
-  function groupTap(g) {   // one group is active at a time
-    if (active !== g) { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); active = g; }   // switching groups: every seat sits easy, other buttons reset, new group starts at Row
+  const isSide = k => k === 'port' || k === 'stbd';
+  function groupTap(g) {   // one group is active at a time, except that Port and Starboard can be set independently of each other
+    if (active !== g && !(isSide(g) && isSide(active))) { boat.seats.forEach(q => q.action = 'easy'); clearGroups(); }   // switching groups: every seat sits easy and the other buttons reset
+    active = g;
     gi[g] = (gi[g] + 1) % ORDER.length;
     boat.seats.filter(q => GROUPS[g][1](q, boat.seats.length)).forEach(q => q.action = ORDER[gi[g]]); seatsUI(); groupsUI(); draw();
   }
