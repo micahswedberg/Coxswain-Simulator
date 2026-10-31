@@ -1,5 +1,6 @@
 { "scenarios": [
   { "name": "Lake Carl Blackwell Cove", "file": "lake-carl-blackwell-cove.json" },
   { "name": "Stars and Stripes - OKC", "file": "Stars and stripes - OKC.json" },
-  { "name": "Cove Challenge #1: Slalom", "file": "cove-slalom-challenge.json" }
+  { "name": "Cove Challenge #1: Slalom", "file": "cove-slalom-challenge.json" },
+  { "name": "Frostbite - Full Course", "file": "frostbite-full-course.json" },
 ] }
