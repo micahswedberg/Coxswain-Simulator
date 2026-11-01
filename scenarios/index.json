@@ -15,6 +15,10 @@
     {
       "name": "Frostbite - Full Course",
       "file": "frostbite-full-course.json"
+    },
+    {
+      "name": "Frostbite - Congested Start",
+      "file": "frostbite-congested-start.json"
     }
   ]
 }
